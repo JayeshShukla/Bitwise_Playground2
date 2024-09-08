@@ -56,7 +56,7 @@ const Component1 = () => {
     <div style={{ fontFamily: "monospace" }}>
       <input
         type="text"
-        placeholder="Enter a hex string"
+        placeholder="Paste the bytecode & to Edit it, double click the byte you wanna edit below"
         value={inputString}
         onChange={handleChange}
         style={{ width: "100%", marginBottom: "10px", fontFamily: "monospace" }}
