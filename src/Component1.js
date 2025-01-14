@@ -66,7 +66,7 @@ const Component1 = () => {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(32, 1fr)`,
-          gap: "5px",
+          gap: "1px",
           alignItems: "center",
           marginBottom: "10px",
         }}
