@@ -9,13 +9,19 @@ const Navbar = ({ setActiveComponent }) => {
         className="navbar-button"
         onClick={() => setActiveComponent("component1")}
       >
-        Component 1
+        Play with Bytes32
       </button>
       <button
         className="navbar-button"
         onClick={() => setActiveComponent("component2")}
       >
-        Component 2
+        Bit Shifter
+      </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component3")}
+      >
+        Contract Storage
       </button>
     </nav>
   );

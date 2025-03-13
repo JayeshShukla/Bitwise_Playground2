@@ -102,7 +102,7 @@ const Component1 = () => {
                 handleByteChange(lineIndex * 32 + byteIndex, e.target.value)
               }
               style={{
-                width: "35px",
+                width: "50px",
                 textAlign: "center",
                 color:
                   parseInt(

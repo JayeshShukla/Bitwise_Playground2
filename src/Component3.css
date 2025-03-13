@@ -1,0 +1,106 @@
+/* Scope styles to Component3 only */
+.component3 .container {
+  max-width: 100vw;
+  height: 100vh;
+  margin: 40px auto;
+  padding: 25px;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  font-family: "Arial", sans-serif;
+}
+
+/* Heading */
+.component3 h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* Form groups */
+.component3 .form-group {
+  margin-bottom: 15px;
+  text-align: center; /* Center text */
+  display: flex;
+  flex-direction: column; /* Stack label and input vertically */
+  align-items: center; /* Center-align inputs */
+}
+
+.component3 label {
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  color: #d1d5db;
+  margin-bottom: 6px;
+}
+
+/* Input fields */
+.component3 input,
+.component3 select {
+  width: 25%;
+  height: 30px;
+  padding-left: 10px;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: white;
+  color: black;
+  font-size: 14px;
+  outline: none;
+  transition: 0.3s ease-in-out;
+}
+
+.component3 input:focus,
+.component3 select:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 8px rgba(74, 144, 226, 0.5);
+}
+
+/* Select dropdown */
+.component3 select {
+  cursor: pointer;
+}
+
+/* Button */
+.component3 .view-btn {
+  width: 25%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background: #4a90e2;
+  color: black;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s ease-in-out;
+}
+
+.component3 .view-btn:hover {
+  background: yellow;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.5);
+}
+
+.highlighted-slot {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #facc15; /* Bright yellow for emphasis */
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
+  padding: 5px 10px;
+  text-align: center;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+.highlighted-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #38bdf8; /* Bright cyan */
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
+  text-align: center;
+  margin-top: 10px;
+  display: inline-block;
+}
