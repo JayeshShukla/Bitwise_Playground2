@@ -11,6 +11,8 @@ const Component3 = () => {
   const [selectedRpc, setSelectedRpc] = useState("");
   const [storageValue, setStorageValue] = useState(null);
   const [expectedType, setExpectedType] = useState("uint256");
+  const [slotNature, setSlotNature] = useState("static");
+  const [dynamicIndex, setDynamicIndex] = useState("");
 
   const networks = [
     {
@@ -32,17 +34,23 @@ const Component3 = () => {
   }, []);
 
   useEffect(() => {
-    if (
-      slotType === "bytes32" &&
-      slotInput.startsWith("0x") &&
-      slotInput.length === 66
-    ) {
-      const keccakValue = BigInt(slotInput).toString();
-      setConvertedSlot(keccakValue);
+    setSlotInput("");
+  }, [slotType]);
+
+  useEffect(() => {
+    let finalSlotInput;
+
+    const slotNumber = BigInt(slotInput || "0");
+    const indexValue = BigInt(dynamicIndex || "0");
+
+    if (slotNature === "dynamic") {
+      finalSlotInput = (slotNumber + indexValue).toString();
     } else {
-      setConvertedSlot(slotInput);
+      finalSlotInput = slotNumber.toString();
     }
-  }, [slotType, slotInput]);
+
+    setConvertedSlot(finalSlotInput);
+  }, [slotInput, slotNature, dynamicIndex]);
 
   async function handleClick() {
     if (!contractAddress || !convertedSlot) {
@@ -110,7 +118,40 @@ const Component3 = () => {
             onChange={(e) => setSlotInput(e.target.value)}
           />
         </div>
-        <div className="form-group">
+        <div>
+          <label>Slot Nature</label>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "20px",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <select
+                style={{ width: "100%" }}
+                value={slotNature}
+                onChange={(e) => setSlotNature(e.target.value)}
+              >
+                <option value="static">Static</option>
+                <option value="dynamic">Dynamic</option>
+              </select>
+            </div>
+            <div>
+              {slotNature === "dynamic" && (
+                <input
+                  type="number"
+                  placeholder="Enter dynamic index"
+                  value={dynamicIndex}
+                  style={{ width: "100%" }}
+                  onChange={(e) => setDynamicIndex(e.target.value)}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="form-group" style={{ marginTop: "10px" }}>
           <label>Expected Data Type</label>
           <select
             value={expectedType}
