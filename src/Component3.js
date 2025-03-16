@@ -27,6 +27,10 @@ const Component3 = () => {
       name: "Polygon",
       rpc: config.networks.polygon.rpc,
     },
+    {
+      name: "Base Sepolia",
+      rpc: config.networks.sepoliaBase.rpc,
+    },
   ];
 
   useEffect(() => {
