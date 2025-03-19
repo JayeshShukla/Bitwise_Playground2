@@ -14,7 +14,7 @@ const config = {
     },
     sepoliaBase: {
       name: "Sepolia Base",
-      rpc: `https://base-mainnet.g.alchemy.com/v2/${process.env.REACT_APP_ALCHEMY_SEPOLIA_BASE_KEY}`,
+      rpc: `https://base-sepolia.g.alchemy.com/v2/${process.env.REACT_APP_ALCHEMY_SEPOLIA_BASE_KEY}`,
     },
   },
 };
