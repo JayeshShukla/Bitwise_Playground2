@@ -28,6 +28,10 @@ const Component3 = () => {
       rpc: config.networks.polygon.rpc,
     },
     {
+      name: "Base Mainnet",
+      rpc: config.networks.mainnetBase.rpc,
+    },
+    {
       name: "Base Sepolia",
       rpc: config.networks.sepoliaBase.rpc,
     },
