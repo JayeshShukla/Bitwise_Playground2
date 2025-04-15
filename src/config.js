@@ -20,6 +20,14 @@ const config = {
       name: "Base Mainnet",
       rpc: `https://base-mainnet.g.alchemy.com/v2/${process.env.REACT_APP_ALCHEMY_MAINNET_BASE_KEY}`,
     },
+    mainnetZeta: {
+      name: "Zeta Mainnet",
+      rpc: `https://zetachain-mainnet.g.alchemy.com/v2/${process.env.REACT_APP_ALCHEMY_ZETA_KEY}`,
+    },
+    testnetZeta: {
+      name: "Zeta Testnet",
+      rpc: `https://zetachain-testnet.g.alchemy.com/v2/${process.env.REACT_APP_ALCHEMY_ZETA_KEY}`,
+    },
   },
 };
 

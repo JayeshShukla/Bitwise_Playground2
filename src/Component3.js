@@ -35,6 +35,14 @@ const Component3 = () => {
       name: "Base Sepolia",
       rpc: config.networks.sepoliaBase.rpc,
     },
+    {
+      name: "Zeta Mainnet",
+      rpc: config.networks.mainnetZeta.rpc,
+    },
+    {
+      name: "Zeta Testnet",
+      rpc: config.networks.testnetZeta.rpc,
+    },
   ];
 
   useEffect(() => {
