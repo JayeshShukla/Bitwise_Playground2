@@ -20,27 +20,28 @@ const Component3 = () => {
       rpc: config.networks.ethereum.rpc,
     },
     {
-      name: "Ethereum Sepolia",
+      name: "Ethereum Testnet",
       rpc: config.networks.sepolia.rpc,
     },
     {
-      name: "Polygon",
+      name: "Polygon Mainnet",
       rpc: config.networks.polygon.rpc,
     },
+    { name: "Polygon Testnet", rpc: config.networks.polygonAmoy.rpc },
     {
       name: "Base Mainnet",
       rpc: config.networks.mainnetBase.rpc,
     },
     {
-      name: "Base Sepolia",
+      name: "Base Testnet",
       rpc: config.networks.sepoliaBase.rpc,
     },
     {
-      name: "Zeta Mainnet",
+      name: "ZetaChain Mainnet",
       rpc: config.networks.mainnetZeta.rpc,
     },
     {
-      name: "Zeta Testnet",
+      name: "ZetaChain Testnet",
       rpc: config.networks.testnetZeta.rpc,
     },
   ];
