@@ -91,16 +91,19 @@ const Component3 = () => {
 
   function formatValue(value) {
     if (!value) return "N/A";
-    if (expectedType === "uint256") {
-      return BigInt(value).toString();
+
+    switch (expectedType) {
+      case "uint256":
+        return BigInt(value).toString();
+      case "address":
+        return "0x" + value.slice(26);
+      case "bool":
+        return (BigInt(value) & 1n) === 1n ? "TRUE" : "FALSE";
+      case "bytes32":
+        return value;
+      default:
+        return value;
     }
-    if (expectedType === "address") {
-      return "0x" + value.slice(26);
-    }
-    if (expectedType === "bool") {
-      return (BigInt(value) & 1n) === 1n ? "TRUE" : "FALSE";
-    }
-    return value;
   }
 
   return (
@@ -177,6 +180,7 @@ const Component3 = () => {
             <option value="uint256">uint256</option>
             <option value="address">address</option>
             <option value="bool">bool</option>
+            <option value="bytes32">bytes32</option>
           </select>
         </div>
         <div className="form-group">
