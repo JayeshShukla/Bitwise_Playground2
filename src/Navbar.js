@@ -23,6 +23,12 @@ const Navbar = ({ setActiveComponent }) => {
       >
         Contract Storage
       </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component4")}
+      >
+        Play with Binary
+      </button>
     </nav>
   );
 };
