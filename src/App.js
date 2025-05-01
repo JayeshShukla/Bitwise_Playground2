@@ -4,6 +4,7 @@ import Navbar from "./Navbar";
 import Component1 from "./Component1";
 import Component2 from "./Component2";
 import Component3 from "./Component3";
+import Component4 from "./Component4";
 
 const App = () => {
   const [activeComponent, setActiveComponent] = useState("component3");
@@ -16,6 +17,8 @@ const App = () => {
         return <Component2 />;
       case "component3":
         return <Component3 />;
+      case "component4":
+        return <Component4 />;
       default:
         return <Component3 />;
     }
