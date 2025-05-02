@@ -18,15 +18,29 @@ const Component4 = () => {
     try {
       return inputFormat === "decimal"
         ? BigInt(inputValue)
-        : BigInt(inputValue.startsWith("0x") ? inputValue : "0x" + inputValue);
+        : BigInt(
+            inputValue.startsWith("0x") || inputValue.startsWith("-0x")
+              ? inputValue
+              : inputValue.startsWith("-")
+              ? "-0x" + inputValue.slice(1)
+              : "0x" + inputValue
+          );
     } catch {
       return null;
     }
   }, [inputValue, inputFormat]);
 
   const bitArray = useMemo(() => {
-    if (!bigIntNumber) return Array(256).fill("0");
-    let binary = bigIntNumber.toString(2).padStart(256, "0");
+    if (bigIntNumber === null) return Array(256).fill("0");
+
+    let value;
+    if (bigIntNumber >= 0n) {
+      value = bigIntNumber;
+    } else {
+      value = (1n << 256n) + bigIntNumber; // two's complement for 256-bit
+    }
+
+    const binary = value.toString(2).padStart(256, "0");
     return binary.split("");
   }, [bigIntNumber]);
 
