@@ -69,9 +69,21 @@ const Component4 = () => {
   const selectedBinary = bitArray
     .slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1)
     .join("");
-  const selectedBigInt = selectedBinary
-    ? BigInt("0b" + selectedBinary)
-    : BigInt(0);
+
+  const selectedBigInt = useMemo(() => {
+    if (!selectedBinary) return 0n;
+
+    const unsigned = BigInt("0b" + selectedBinary);
+    const bitLength = selectedBinary.length;
+
+    if (bigIntNumber !== null && bigIntNumber < 0n) {
+      if (selectedBinary[0] === "1") {
+        return unsigned - (1n << BigInt(bitLength));
+      }
+    }
+
+    return unsigned;
+  }, [selectedBinary, bigIntNumber]);
 
   const byteChunks = Array.from({ length: BYTES_TOTAL }, (_, byteIndex) =>
     bitArray.slice(byteIndex * 8, (byteIndex + 1) * 8)
