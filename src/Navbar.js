@@ -29,6 +29,12 @@ const Navbar = ({ setActiveComponent }) => {
       >
         Play with Binary
       </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component5")}
+      >
+        Advanced Converter
+      </button>
     </nav>
   );
 };
