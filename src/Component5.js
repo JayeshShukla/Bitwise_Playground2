@@ -20,19 +20,18 @@ const toBinary = (value) => {
 const parseHex = (hexStr) => {
   hexStr = hexStr.replace("0x", "").replace(/[^0-9a-fA-F]/g, "");
   if (hexStr === "") return { parsed: 0n, signed: 0n };
-  const significantHex = hexStr.replace(/^0+/, "");
-  const bitWidth = significantHex.length * 4 || 1; // Minimum 1 bit for zero
+  hexStr = hexStr.padStart(64, "0");
   const parsed = BigInt("0x" + hexStr);
-  const signed = BigInt.asIntN(bitWidth, parsed);
+  const signed = BigInt.asIntN(256, parsed);
   return { parsed, signed };
 };
 
 const parseBinary = (binStr) => {
   binStr = binStr.replace("0b", "").replace(/\s+/g, "").replace(/[^01]/g, "");
   if (binStr === "") return { parsed: 0n, signed: 0n };
+  binStr = binStr.padStart(256, "0");
   const parsed = BigInt("0b" + binStr);
-  const bitWidth = binStr.length;
-  const signed = BigInt.asIntN(bitWidth, parsed);
+  const signed = BigInt.asIntN(256, parsed);
   return { parsed, signed };
 };
 
@@ -57,7 +56,7 @@ const Component5 = () => {
   const [fields, setFields] = useState({
     uint256: "",
     int256: "",
-    hexInput: "", // User’s exact input for hex
+    hexInput: "",
     binary: "",
   });
 
@@ -67,7 +66,7 @@ const Component5 = () => {
       setFields({
         uint256: parsed.toString(),
         int256: signed.toString(),
-        hexInput: rawValue, // Keep user’s input as is
+        hexInput: rawValue,
         binary: toBinary(parsed),
       });
     } else if (type === "binary") {
@@ -75,7 +74,7 @@ const Component5 = () => {
       setFields({
         uint256: parsed.toString(),
         int256: signed.toString(),
-        hexInput: parsed.toString(16), // Minimal hex without padding
+        hexInput: toHex(parsed),
         binary: rawValue,
       });
     } else if (type === "uint256") {
@@ -86,7 +85,7 @@ const Component5 = () => {
           setFields({
             uint256: rawValue,
             int256: asInt.toString(),
-            hexInput: parsed.toString(16), // Minimal hex
+            hexInput: toHex(parsed),
             binary: toBinary(parsed),
           });
         }
@@ -100,7 +99,7 @@ const Component5 = () => {
         setFields({
           uint256: asUint.toString(),
           int256: rawValue,
-          hexInput: asUint.toString(16), // Minimal hex
+          hexInput: toHex(asUint),
           binary: toBinary(asUint),
         });
       } catch {
@@ -109,7 +108,6 @@ const Component5 = () => {
     }
   };
 
-  // Compute padded hex for display or copying
   const paddedHex = fields.hexInput
     ? toHex(parseHex(fields.hexInput).parsed)
     : "";
@@ -161,7 +159,6 @@ const Component5 = () => {
         />
         <button onClick={() => copyToClipboard(fields.binary)}>Copy</button>
       </div>
-      {/* Optional: Display padded hex separately */}
       {fields.hexInput && (
         <div className="padded-display">
           <span>Full 256-bit hex: {paddedHex}</span>
