@@ -35,6 +35,12 @@ const Navbar = ({ setActiveComponent }) => {
       >
         Advanced Converter
       </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component6")}
+      >
+        Pattern Vizualizer
+      </button>
     </nav>
   );
 };
