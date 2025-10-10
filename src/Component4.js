@@ -137,7 +137,9 @@ const Component4 = () => {
                   return (
                     <span
                       key={globalIndex}
-                      className={`bit ${isSelected ? "selected" : ""}`}
+                      className={`bit ${
+                        isSelected ? (bit == 1 ? "changed" : "selected") : ""
+                      }`}
                       onMouseDown={() => handleMouseDown(globalIndex)}
                       onMouseEnter={() => handleMouseEnter(globalIndex)}
                     >

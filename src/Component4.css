@@ -93,6 +93,11 @@ h2 {
   color: white;
 }
 
+.bit.changed {
+  background-color: #333;
+  color: #ffde21;
+}
+
 .output-section {
   margin-top: 15px;
   padding: 10px;
