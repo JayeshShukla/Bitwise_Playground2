@@ -39,7 +39,7 @@ const Navbar = ({ setActiveComponent }) => {
         className="navbar-button"
         onClick={() => setActiveComponent("component6")}
       >
-        Pattern Vizualizer
+        Rust Notes
       </button>
     </nav>
   );
