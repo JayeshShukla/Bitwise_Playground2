@@ -98,11 +98,190 @@ v1.into_iter(); // <@ can convert to iterator if u want`,
 let ref_x = &x;
 *ref_x // ❌ will revert not possible to dereference a collection like an simple var`,
       },
+      { type: "subtitle", content: "Comparisons" },
+      {
+        type: "code",
+        code: `    let v1 = vec![1, 2, 3];
+    let v3 = vec![3, 2, 1];
+    println!("v1 == v3: {}", v1 == v3);  // this will return false cuzz order does matter for vec, but remember if it would have been sets or hashmaps -- order does not matter for them so would have been true`,
+      },
     ],
   },
 
   // =========================================================
-  // 5. HASHSET
+  // 5. ARRAYS
+  // =========================================================
+  {
+    id: "arrays",
+    title: "Arrays",
+    summary: "Fixed size collections.",
+    sections: [
+      { type: "subtitle", content: "Array Basics" },
+      {
+        type: "code",
+        code: `// ALWAYS of fixed size as below diff types of array :
+let a: [i32; 3] = [1,2,3];
+let a = [true, false, true, false]; // automaically rust is able to know the type
+let a : [(usize, bool); 2] = [..not putting here but some values will come]
+let a : [Vec<i32>; 10] = [10 vecs upfront will come]
+    let board = [[1,2,1],
+                 [2,1,2],
+                 [1,2,1]]; 
+b: [[u8; 3]; 3], // its type is this array of 3 array fixed size all
+pub fn accept(a:[bool; 4]) {} // function will take like this argument if passed array
+    let mut a = [1,2,3];
+    a[0] = 10; // we cannot change the len of an array but can mutate already existing values only if array is mutable`,
+      },
+      { type: "subtitle", content: "Ownership & Iteration" },
+      {
+        type: "code",
+        code: `    let a: [Vec<i32>; 3] = [vec![1, 2], vec![2], vec![3]];
+    take(a); // here ownership is transfered to function cuzz array has non-copy types in it, otherwise would not have ownership issue
+a.clone() // clones array 
+a.iter() // supports all types of iterator
+a.into_iter() // only consumes if a has any non-copy types; else it does not
+a.into_iter().collect() ❌ // collect does not work on fixed data types at all, like ever, diff methods exist`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 6. SLICE
+  // =========================================================
+  {
+    id: "slice",
+    title: "slice",
+    summary: "Views into contiguous memory.",
+    sections: [
+      { type: "subtitle", content: "Slice Basics" },
+      {
+        type: "code",
+        code: `    let a = [1, 2, 3, 4];
+    let my_full_slice = &a; // A slice in Rust is a reference to array or vector but sliced version
+let my_slice = &a[0..2] // slice the a only from index 0 to 1 (2 is excluded) so my_slice = &[1,2]
+it becomes of type &[i32] even if a was vector slice is basicallly an array 
+ below snippet works fine cuzz above reasons :
+
+fn main() {
+    let v = vec![1, 2, 3];
+    let arr = [1, 2, 3];
+
+    accept(&v);
+    accept(&arr);
+}
+
+pub fn accept(_s: &[i32]) {}`,
+      },
+      { type: "subtitle", content: "Conversion Issues" },
+      {
+        type: "code",
+        code: `vec -> slice -> vec is not a problem 
+arr -> slice -> arr is a problem we cnnot just iter.copied().collect to convert slice -> arr`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 7. STRING
+  // =========================================================
+  {
+    id: "string",
+    title: "String",
+    summary: "Literal vs Owned Strings.",
+    sections: [
+      { type: "subtitle", content: "Basics" },
+      {
+        type: "code",
+        code: `if a == "red" // here red is not owned by anyone but program itself
+let b = String::from("red") // red owned by b`,
+      },
+      { type: "subtitle", content: "Types & Comparisons" },
+      {
+        type: "code",
+        code: `let str1 = "BOB"; // this is of &str type to convert into string use .to_string()
+let str1 = "BOB".to_string() // now its of type String
+    let str1 = "hello";
+    let str2 = "hello";
+    println!("str1 == str2: {}", str1 == str2); // we can compare using == `,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 8. STRUCT
+  // =========================================================
+  {
+    id: "struct",
+    title: "Struct",
+    summary: "Custom data types.",
+    sections: [
+      { type: "subtitle", content: "Definition & Instantiation" },
+      {
+        type: "code",
+        code: `struct S {
+	f: i32; // can you see let keyword is not used, instead its currently private and accessible to same crate, to make it accesible to read via other crates outside main make it pub
+}
+let s = S { f: 3 }; // normal instanciation and can be now read as s.f 
+#[derive(Debug)] // for struct its required to have Debug attribute to inherit the fmt functtion of a predefined trait
+distance(point); // if point is a struct instance and passed in a function which is public the struct will just give warning if the struct is in same crate but will give error if in diff crate and trying so need to make the struct as pub as well cuzz function is also pub`,
+      },
+      { type: "subtitle", content: "Destructuring" },
+      {
+        type: "code",
+        code: `pub fn area(Rectangle { upper: (ux, uy), lower: (lx, ly) }: Rectangle) -> u32 // suppose a struct is a struct of tuples this is how one can destructure a struct in the function argument where Rectantct is a struct`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 9. ENUM
+  // =========================================================
+  {
+    id: "enum",
+    title: "Enum",
+    summary: "Enumerations and Macros.",
+    sections: [
+      { type: "subtitle", content: "Enum Basics" },
+      {
+        type: "code",
+        code: `// EnumName.enum is wrong way isntead EnumName::enum is write eg :
+ Color::White // this is how you access a attribute of Color enum 
+// if an enum is returned from a \`pub\` fn, the enum has to be also public`,
+      },
+      { type: "subtitle", content: "Issues & Macros Fixes" },
+      {
+        type: "code",
+        code: `TaxiType::Car.clone() ❌ // its not possible to clone an Enum but only possible after adding clone functionlity using \`#[derive(Clone)]\` -- macro
+println!("{:?}", Pet::Dog) // ❌ -- due to missing fmt function for enums, we cannot print, but this function can be added to enum's using \`#[derive(Debug)]\`
+#[derive(Clone, Copy)] // enums are not by default copy types for obvious reason so we can make it like this of Copy types, remember although Clone just provides .clone funtion its mandatory to make enum of copy types by making it clone type also other wise error
+
+#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 10. MACROS
+  // =========================================================
+  {
+    id: "macros",
+    title: "Macros",
+    summary: "Derive attributes for traits.",
+    sections: [
+      { type: "subtitle", content: "Common Macros" },
+      {
+        type: "code",
+        code: `#[derive(Clone)] // adds .clone() functionality due to some trait 
+#[derive(Debug)] // adds fmt() (internal function), so that println!() can start prinitng enums or struct
+#[derive(Debug, Clone)] // now adds both clone() function & fmt() 
+#[derive(Clone, Copy)] // makes clone and copy type for ownership concept removal
+#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 11. HASHSET
   // =========================================================
   {
     id: "hashset",
@@ -139,11 +318,19 @@ s.into_iter(); // <@ indexing not supported in set, so conert it to a iterator &
 let ref_x = &x;
 *ref_x // ❌ will revert not possible to dereference a collection like an simple type`,
       },
+      { type: "subtitle", content: "Comparisons" },
+      {
+        type: "code",
+        code: `    // Sets (order doesn't matter for sets!)
+    let s1 = HashSet::from([1, 2, 3]);
+    let s2 = HashSet::from([3, 1, 2]);
+    println!("s1 == s2: {}", s1 == s2); `,
+      },
     ],
   },
 
   // =========================================================
-  // 6. TUPLES
+  // 12. TUPLES
   // =========================================================
   {
     id: "tuples",
@@ -169,7 +356,7 @@ x.clone(); // clone works but only if typle does not have any dynamic collection
   },
 
   // =========================================================
-  // 7. INBUILT FUNCTIONS RETURNING OPTIONS
+  // 13. INBUILT FUNCTIONS RETURNING OPTIONS
   // =========================================================
   {
     id: "options_inbuilt",
@@ -192,7 +379,24 @@ let variable = Some(any number, or collection) // any thing could be wrappe in a
   },
 
   // =========================================================
-  // 8. HASHMAPS
+  // 14. UTILITY FUNCTIONS
+  // =========================================================
+  {
+    id: "utility",
+    title: "Utility Functions",
+    summary: "Math and helpers.",
+    sections: [
+      { type: "subtitle", content: "Math" },
+      {
+        type: "code",
+        code: `f32::sqrt(a); // sqrt of a
+a.powi(b).  // a^b`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 15. HASHMAPS
   // =========================================================
   {
     id: "hashmaps",
@@ -222,11 +426,19 @@ hm.values(); // returns ITERATOR over REFERENCE to the values`,
 let ref_x = &x;
 *ref_x // ❌ will revert not possible to dereference a collection like an simple var`,
       },
+      { type: "subtitle", content: "Comparisons" },
+      {
+        type: "code",
+        code: `    // HashMaps (order doesn't matter!)
+    let m1 = HashMap::from([(3, 4), (1, 2)]);
+    let m2 = HashMap::from([(1, 2), (3, 4)]);
+    println!("m1 == m2: {}", m1 == m2); `,
+      },
     ],
   },
 
   // =========================================================
-  // 9. ITERATOR & RANGES (Updated with new notes)
+  // 16. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -296,7 +508,6 @@ cuzz for later we will be producing &Vec<i32>
 into_iter absorbs just 1 outer & and rest of it ignores`,
       },
 
-      /* --- NEW SECTION: Cloning & Dereferencing --- */
       { type: "subtitle", content: "Cloning & References" },
       {
         type: "code",
@@ -331,7 +542,7 @@ let my_range: Range<i32> = 0..10;`,
   },
 
   // =========================================================
-  // 10. OWNERSHIP & CONSUMPTION
+  // 17. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -432,6 +643,20 @@ const Component6 = () => {
                     ? "🍱"
                     : topic.title.toLowerCase().includes("option")
                     ? "🤷"
+                    : topic.title.toLowerCase().includes("array")
+                    ? "🔢"
+                    : topic.title.toLowerCase().includes("slice")
+                    ? "🔪"
+                    : topic.title.toLowerCase().includes("string")
+                    ? "🧵"
+                    : topic.title.toLowerCase().includes("enum")
+                    ? "🚥"
+                    : topic.title.toLowerCase().includes("macro")
+                    ? "🏗️"
+                    : topic.title.toLowerCase().includes("struct")
+                    ? "🏛️"
+                    : topic.title.toLowerCase().includes("utility")
+                    ? "🛠️"
                     : "📝"}
                 </div>
                 <h3>{topic.title}</h3>
