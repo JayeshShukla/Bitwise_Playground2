@@ -41,6 +41,12 @@ const Navbar = ({ setActiveComponent }) => {
       >
         Rust Notes
       </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component7")}
+      >
+        Rust tools
+      </button>
     </nav>
   );
 };

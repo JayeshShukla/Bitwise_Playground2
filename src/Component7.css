@@ -1,0 +1,174 @@
+.component7-container {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  padding: 24px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border: 1px solid #333;
+}
+
+.component7-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+}
+
+.component7-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.component7-group label,
+.component7-seeds-header label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.component7-input,
+.component7-select {
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.component7-input:focus,
+.component7-select:focus {
+  border-color: #9945ff; /* Solana Purple */
+}
+
+.component7-seeds-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.component7-btn-add {
+  background: none;
+  border: 1px solid #444;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.component7-btn-add:hover {
+  background: #333;
+  color: #fff;
+}
+
+.component7-seeds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.component7-seed-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.component7-index {
+  color: #555;
+  font-size: 0.8rem;
+  width: 20px;
+}
+
+.component7-seed-input {
+  flex: 1;
+}
+
+.component7-btn-del {
+  background: none;
+  border: none;
+  color: #ff5555;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.component7-btn-del:hover {
+  color: #ff8888;
+}
+
+.component7-btn-calc {
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    #9945ff 0%,
+    #14f195 100%
+  ); /* Solana Gradient */
+  border: none;
+  color: #000;
+  font-weight: bold;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: opacity 0.2s;
+}
+
+.component7-btn-calc:hover {
+  opacity: 0.9;
+}
+
+.component7-error {
+  margin-top: 16px;
+  padding: 10px;
+  background-color: rgba(255, 85, 85, 0.1);
+  border: 1px solid #ff5555;
+  color: #ff5555;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.component7-result {
+  margin-top: 20px;
+  background-color: #252526;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.component7-result-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.component7-result-item:last-child {
+  margin-bottom: 0;
+}
+
+.component7-label {
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.component7-value {
+  font-family: "Courier New", monospace;
+  word-break: break-all;
+}
+
+.component7-highlight {
+  color: #14f195;
+  font-weight: bold;
+}

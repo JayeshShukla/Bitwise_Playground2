@@ -7,6 +7,7 @@ import Component3 from "./Component3";
 import Component4 from "./Component4";
 import Component5 from "./Component5";
 import Component6 from "./Component6";
+import Component7 from "./Component7";
 
 const App = () => {
   const [activeComponent, setActiveComponent] = useState("component3");
@@ -25,6 +26,8 @@ const App = () => {
         return <Component5 />;
       case "component6":
         return <Component6 />;
+      case "component7" :
+        return <Component7 />;
       default:
         return <Component3 />;
     }
