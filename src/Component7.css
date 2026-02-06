@@ -1,15 +1,30 @@
-.component7-container {
+/* WRAPPER FOR SIDE-BY-SIDE LAYOUT */
+.component7-dashboard {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap; /* Wraps on small screens */
+  width: 100%;
+}
+
+/* INDIVIDUAL CARD STYLE (Previously .component7-container) */
+.component7-card {
   background-color: #1e1e1e;
   color: #e0e0e0;
   padding: 24px;
   border-radius: 12px;
   width: 100%;
-  max-width: 500px;
+  max-width: 500px; /* Ensures they don't get too wide */
+  min-width: 320px;
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
 }
 
+/* SHARED STYLES BELOW */
 .component7-title {
   margin-top: 0;
   margin-bottom: 20px;
@@ -17,6 +32,12 @@
   color: #fff;
   border-bottom: 1px solid #333;
   padding-bottom: 12px;
+}
+
+.component7-sub-header {
+  margin-bottom: 15px;
+  font-size: 1rem;
+  color: #aaa;
 }
 
 .component7-group {
@@ -34,7 +55,8 @@
 }
 
 .component7-input,
-.component7-select {
+.component7-select,
+.component7-textarea {
   background-color: #2d2d2d;
   border: 1px solid #444;
   color: #fff;
@@ -45,9 +67,16 @@
   transition: border-color 0.2s;
 }
 
+.component7-textarea {
+  font-family: monospace;
+  color: #0f0;
+  resize: vertical;
+}
+
 .component7-input:focus,
-.component7-select:focus {
-  border-color: #9945ff; /* Solana Purple */
+.component7-select:focus,
+.component7-textarea:focus {
+  border-color: #9945ff;
 }
 
 .component7-seeds-header {
@@ -108,13 +137,10 @@
   color: #ff8888;
 }
 
+/* Primary Button (Gradient) */
 .component7-btn-calc {
   width: 100%;
-  background: linear-gradient(
-    90deg,
-    #9945ff 0%,
-    #14f195 100%
-  ); /* Solana Gradient */
+  background: linear-gradient(90deg, #9945ff 0%, #14f195 100%);
   border: none;
   color: #000;
   font-weight: bold;
@@ -123,10 +149,28 @@
   cursor: pointer;
   font-size: 1rem;
   transition: opacity 0.2s;
+  margin-top: 10px;
 }
 
 .component7-btn-calc:hover {
   opacity: 0.9;
+}
+
+/* Secondary Button (Dark) */
+.component7-btn-secondary {
+  width: 100%;
+  padding: 10px;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.component7-btn-secondary:hover {
+  background: #444;
 }
 
 .component7-error {
@@ -171,4 +215,25 @@
 .component7-highlight {
   color: #14f195;
   font-weight: bold;
+}
+
+.component7-type-badge {
+  background: #444;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-left: 8px;
+}
+
+.component7-byte-array {
+  font-family: monospace;
+  background: #111;
+  padding: 8px;
+  border-radius: 4px;
+  color: #ccc;
+  word-break: break-all;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  border: 1px solid #333;
 }

@@ -277,6 +277,12 @@ println!("{:?}", Pet::Dog) // ❌ -- due to missing fmt function for enums, we c
 #[derive(Clone, Copy)] // makes clone and copy type for ownership concept removal
 #[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`,
       },
+      { type: "subtitle", content: "Anchor + Macros" },
+      {
+        type: "code",
+        code: `#[instruction(poll_id : u64)] // if an account wanna use the passed argument before the function call !
+seeds = [b"poll", poll_id.to_le_bytes().as_ref()] // here for eg : the poll_id an argument of a function is used as a seed for #[derive(Accounts)] account`,
+      },
     ],
   },
 
@@ -438,7 +444,35 @@ let ref_x = &x;
   },
 
   // =========================================================
-  // 16. ITERATOR & RANGES
+  // 16. TRAIT & IMPLEMENTATION
+  // =========================================================
+  {
+    id: "trait_impl",
+    title: "trait, implimentation",
+    summary: "Interfaces and struct logic.",
+    sections: [
+      { type: "subtitle", content: "Basics" },
+      {
+        type: "note",
+        content:
+          "if struct & trait name is kept same we can omit defining trait & directly write imp struct {} and put the logic",
+      },
+      {
+        type: "note",
+        content:
+          "trait -> is like an interface, only function defination, no logic",
+      },
+      {
+        type: "code",
+        code: `// as you can see below is its implimenting a trait, differently for both the structs 
+imp trait for struct1 {} // here goes the logic1 for struct1 but for same trait
+imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 17. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -542,7 +576,7 @@ let my_range: Range<i32> = 0..10;`,
   },
 
   // =========================================================
-  // 17. OWNERSHIP & CONSUMPTION
+  // 18. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -657,6 +691,8 @@ const Component6 = () => {
                     ? "🏛️"
                     : topic.title.toLowerCase().includes("utility")
                     ? "🛠️"
+                    : topic.title.toLowerCase().includes("trait")
+                    ? "🧩"
                     : "📝"}
                 </div>
                 <h3>{topic.title}</h3>
