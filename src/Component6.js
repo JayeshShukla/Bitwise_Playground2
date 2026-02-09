@@ -318,6 +318,33 @@ has_one = name // if both are same
 
 
 )]`
+      },
+      { type: "subtitle", content: "Account Types" },
+      {
+        type: "code",
+        code: `InterfaceAccount<'info, T> // account owned by another program like Spl or tokne22 with data T
+Interface<'info, T> // **executable** program itself
+Option<T> // An optional account that may or may not be provided so its of type : Some(account)
+
+// Here T can be custom structs or :`
+      },
+      { type: "subtitle", content: "Zero Copy" },
+      {
+        type: "code",
+        code: `#[account(zero_copy)] // efficient and fast due to larger Struct`
+      },
+      { type: "subtitle", content: "Account Creation Struct" },
+      {
+        type: "code",
+        code: `#[account(
+     init, // does not take any parameter just tells this account is being initsalized
+     payer = whoever is paying for this account init
+     space = size_of::<StructName>() + 8 // the space this account will take when init     
+     seeds = [] \\ discuused above snippet
+     bump // still not clear why 
+     mut    // tells wether the account is being mutated or not -- when init, lamports value changes, so mut
+
+)]`
       }
     ]
   },
