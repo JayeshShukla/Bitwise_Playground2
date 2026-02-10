@@ -316,6 +316,10 @@ has_one = name1 @ name2 // this tells look inside the struct of my with a field 
 
 has_one = name // if both are same
 
+#[instruction(amount: u32)] // amount must be passed as an instruction
+...
+constraint = (from.points) >= amount @ Errors::InsufficientPoints // literally moving the check of instruction to this instruction Struct to update, just like has_one which can be checked using ctx inside the instructions
+from: Account<'info, Player>,
 
 )]`,
       },
@@ -325,6 +329,9 @@ has_one = name // if both are same
         code: `InterfaceAccount<'info, T> // account owned by another program like Spl or tokne22 with data T
 Interface<'info, T> // **executable** program itself
 Option<T> // An optional account that may or may not be provided so its of type : Some(account)
+
+UncheckedAccount<'info> // ❗ used if the account u are giving needs no check, cuzz sometimes you dont need any checks on it
+AccountInfo<'info> // == UncheckedAccount, the only difference the AccountInfo is solana based but UncheckAccount belongs to anchor -- SR must be looking for this type of things
 
 // Here T can be custom structs or :`,
       },
@@ -344,7 +351,68 @@ Option<T> // An optional account that may or may not be provided so its of type 
      bump // still not clear why 
      mut    // tells wether the account is being mutated or not -- when init, lamports value changes, so mut
 
+     close = signer // closes the account and returns the lamports to the signer
+
+     realloc = size_of::<StructName>() + 8 + 1000,  // wanna increase the data size, by 1000     
+     realloc::payer = signer,        // extra lamports will be given by signer      
+     realloc::zero = false,       // false indicate dont erase the old data, true means erase the old one
 )]`,
+      },
+      { type: "subtitle", content: "Context & Lamports" },
+      {
+        type: "code",
+        code: `ctx.accounts.acct.to_account_info().lamports() // ❗remember it tells the total lmaport of an account -- which will have some sol transferred by someone + rent extempt sol to keep the account alive`,
+      },
+      { type: "subtitle", content: "Transfer Native SOL (CPI)" },
+      {
+        type: "code",
+        code: `// learn more from : https://rareskills.io/post/anchor-transfer-sol
+
+#[derive(Accounts)]
+pub struct SendSol<'info> {    /// CHECK: we do not read or write the data of this account    
+
+#[account(mut)]   
+ recipient: UncheckedAccount<'info>,   
+     
+system_program: Program<'info, System>,    // this is like EVM a hardcode address : 11111111111111111111111111111111
+
+#[account(mut)]    
+signer: Signer<'info>,
+}
+
+inside the function : param is : amount
+
+use anchor_lang::system_program; // this will be included in the header 
+
+let cpi_context = CpiContext::new(
+            
+     ctx.accounts.system_program.to_account_info(),    // calling to system program account 
+        
+     system_program::Transfer {  // kind of like passing only accounts to the system program's Transfer function               
+          from: ctx.accounts.signer.to_account_info(),        // from signer (only Signer can be from, else revert)       
+          to: ctx.accounts.recipient.to_account_info(),        // to unchecked account    
+      }        
+
+);
+
+let res = system_program::transfer(cpi_context, amount); // now describing the amount
+
+// above res is : Result<()> : Do not ignore the return values of cross program invocations ❗
+
+if res.is_ok() {            // succeeded ?
+     return Ok(());        
+} else {                      // failed ?
+     return err!(Errors::TransferFailed);        
+}
+
+
+// What if there are 1000's of unchecked accounts you wanna send ur sol to ?
+// would you mention all the unchecked accounts to the struct one by one ?
+// the answer is remaining_accounts -- to the rescue
+
+ctx.remaining_accounts // is an array of unchecked accounts which need not to be mentioned in the struct at all
+let amount_each_gets = amount / ctx.remaining_accounts.len() as u64; // you can know its len
+ for recipient in ctx.remaining_accounts { // can loop through it`,
       },
     ],
   },
