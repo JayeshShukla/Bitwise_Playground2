@@ -335,10 +335,72 @@ AccountInfo<'info> // == UncheckedAccount, the only difference the AccountInfo i
 
 // Here T can be custom structs or :`,
       },
-      { type: "subtitle", content: "Zero Copy" },
+      { type: "subtitle", content: "Functional Macro" },
       {
         type: "code",
-        code: `#[account(zero_copy)] // efficient and fast due to larger Struct`,
+        code: `#[account(zero_copy)] // efficient and fast due to larger Struct
+#[allow(dead_code)] // silences a function/var if unused by a file`,
+      },
+      { type: "subtitle", content: "Talking to SPL Tokens" },
+      {
+        type: "code",
+        code: `// ! INFO: \`token\` module defaults to the old SPL Token program (No Token-2022 support).
+// ! WARNING: Standard \`transfer\` (in both modules) does NOT check decimals.
+// -> We import \`TransferChecked\` here to explicitly enforce decimal checks manually.
+use anchor_spl::token::{self};
+use anchor_spl::token_interface::{self, Mint, TokenAccount, TransferChecked}; // # Supports SPL + Token-2022
+
+use anchor_spl::{
+    // ! INFO: Raw access to the original SPL Token Crate.
+    // -> Used when Anchor's wrappers are too simple and the dev needs raw constants or error codes.
+    token::spl_token,
+
+    // ! INFO: Raw access to the new Token-2022 Crate.
+    // -> Required for advanced features not fully supported by Anchor's high-level types.
+    token_2022::spl_token_2022,
+
+    // ! AUDIT FLAG: Manual Extension Handling (High Complexity)
+    // -> The code below implies the protocol manually decodes Token-2022 features (like Transfer Fees).
+    // -> RISK: Manual byte parsing is error-prone. Verify they check \`ExtensionType\` correctly.
+    token_interface::spl_token_2022::extension::{
+        BaseStateWithExtensions, // Helper to read standard data (balance, owner) from a complex account.
+        ExtensionType,           // The specific "Feature Flag" (e.g., is this a TransferFeeConfig?).
+        StateWithExtensions,     // The tool to unpack the extra data bytes at the end of the account.
+    },
+};`,
+      },
+      { type: "subtitle", content: "What Anchor Imports" },
+      {
+        type: "code",
+        code: `use anchor_lang::prelude::*; // research more if anything else is imported too ?
+AccountInfo, // UncheckAccount but the struct belong to Rust not Anchor
+Pubkey, 
+Context, 
+Result, 
+and msg!`,
+      },
+      { type: "subtitle", content: "How Structs Look (ATA Example)" },
+      {
+        type: "code",
+        code: `ATA :
+
+AccountInfo { // THE OUTER BOX (The Solana System Wrapper)
+
+key:      "7X...9z",        // 📍 The Address of THIS specific ATA (Derived Address)
+owner:    "Tokenkeg...11",  // 👷 The LANDLORD (Must be SPL Token Program Address)
+lamports: 2039280,          // 💰 Rent money to keep the box alive
+executable: false,          // ⚙️ CODE? (False = It's storage, not a program)
+data : {
+    mint:             "USDC MINT PublicKey", // 🏦 MINT Account Address
+    owner:            "ALICE PublicKey",     // 👤 USER's Real Public Account Address
+    amount:           1000000,               // 💵 MINT Balance
+    delegate:         None,                  // 🔑 SPENDER (Is someone else allowed to spend?)
+    state:            1,                     // 🚦 STATUS (1 = Initialized, 2 = Frozen)
+    is_native:        0,                     // 📦 WRAPPED SOL? (0 = No, it's a standard token)
+    delegated_amount: 0,                     // 💳 ALLOWANCE (How much can the delegate spend?)
+    close_authority:  None,                  // 🚪 CLOSER (Who gets the rent back if closed?)
+},
+}`,
       },
       { type: "subtitle", content: "Account Creation Struct" },
       {
