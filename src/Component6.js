@@ -370,7 +370,7 @@ seeds = [
     mint.key().as_ref()
 ],
 bump, 
-seeds::program = token_metadata_program.key(),
+seeds::program = token_metadata_program.key(), // Don't use my ID for the math. Use the Metaplex ID instead cuzz this PDA of metaplex is not gonna be stored in my porgram instead in Metaplex's account
 )]
 pub metadata_account: UncheckedAccount<'info>,
 
@@ -727,7 +727,10 @@ let map: HashMap<i32, i64> = vec.into_iter().collect(); // a vec can be converte
 
 hm.into_iter(); // similary we can iterat through hashmap
 hm.keys(); // returns ITERATOR over REFERENCE to the keys
-hm.values(); // returns ITERATOR over REFERENCE to the values`,
+hm.values(); // returns ITERATOR over REFERENCE to the values
+
+.values_mut() // it returns an iterator of mutable references to the values in the HashMap
+.iter_mut() // does not consume the collection remember`,
       },
       { type: "subtitle", content: "Dereferencing Issues" },
       {
@@ -787,7 +790,6 @@ imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
       {
         type: "code",
         code: `any_collection.into_iter() // helps collections to be index free, on cost of ownership transfer
-// A type of &mut &mut doesn't support into_iter() & also takes ownership of any_collection 
 
 <new collection type> = any_collection.into_iter().collect() // iterator.collect() makes any collection of other mentioned collection 
 eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically from any collection to any other`,
@@ -809,8 +811,6 @@ eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically fro
 for i in &v // where v is collection \`== (&v).into_iter();\` under the hood by default using for loop on a collection automatically makes is an iterator
 for i in v // will work fine but v will be consumed by into_iter(); which silently works behind the scenes
 for e in &v // will yield e of type &i32 cuzz iterator to a ref results in each element as ref
-
-for e in w  vs for e in w.iter_mut() // both same but w.iter_mut() does not consume w
 
 // above was very big and verbose so lets shorten it 
 v.iter() == &v(in a for loop) == (&v).into_iter() == (&v).iter(); // and does not consume the collection
