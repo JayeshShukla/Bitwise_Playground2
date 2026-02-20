@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Component6.css";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const TOPICS = [
   // =========================================================
@@ -16,15 +16,15 @@ const TOPICS = [
       {
         type: "code",
         code: `x as u32 // <@ without semicolon if written means return this by changing its type
-or return x as u32; // <@ explicit return, where above is implicit return`
+or return x as u32; // <@ explicit return, where above is implicit return`,
       },
       { type: "subtitle", content: "min & max" },
       {
         type: "code",
         code: `u8::MAX, u8::MIN // <@ returns the min and max of certian static data type 
-u8::MAX as u64 // <@ type casting`
-      }
-    ]
+u8::MAX as u64 // <@ type casting`,
+      },
+    ],
   },
 
   // =========================================================
@@ -38,9 +38,9 @@ u8::MAX as u64 // <@ type casting`
       { type: "subtitle", content: "for loop" },
       {
         type: "code",
-        code: `for i in 0..x // : here i will always be of type usize`
-      }
-    ]
+        code: `for i in 0..x // : here i will always be of type usize`,
+      },
+    ],
   },
 
   // =========================================================
@@ -54,9 +54,9 @@ u8::MAX as u64 // <@ type casting`
       { type: "subtitle", content: "if{}else{}" },
       {
         type: "code",
-        code: `let x = if conditon1 { 4 } else { return 5;} // <@ if and else can be used to return implicitly or explicitly anything, here even 5 could have been retrned implicilty but to showcase wrtten like this`
-      }
-    ]
+        code: `let x = if conditon1 { 4 } else { return 5;} // <@ if and else can be used to return implicitly or explicitly anything, here even 5 could have been retrned implicilty but to showcase wrtten like this`,
+      },
+    ],
   },
 
   // =========================================================
@@ -81,7 +81,7 @@ my_vec.getAddress(); // not sure if it works need to check
 v.push(5);
 
 v1.extend(v2); // <@ only if v1 is mut, you can kind of join the v2 in it and it will be done, only v1 updates, v2 is still same 
-v1.into_iter(); // <@ can convert to iterator if u want`
+v1.into_iter(); // <@ can convert to iterator if u want`,
       },
       { type: "subtitle", content: "mutable + vector" },
       {
@@ -90,23 +90,23 @@ v1.into_iter(); // <@ can convert to iterator if u want`
     let mut v = vec![3,4,5]; 
     let result = modify(v);  // <@ inside the function if uh try to mutate the vec, it will REVERT
     let copy_vec = v.clone(); // <@ but inside the function, you can create a copy and mutate it, but its just a copy, original vec is not being updated at all
-}`
+}`,
       },
       { type: "subtitle", content: "Dereferencing Issues" },
       {
         type: "code",
         code: `let x = vec![1, 2, 3];
 let ref_x = &x;
-*ref_x // ❌ will revert not possible to dereference a collection like an simple var`
+*ref_x // ❌ will revert not possible to dereference a collection like an simple var`,
       },
       { type: "subtitle", content: "Comparisons" },
       {
         type: "code",
         code: `    let v1 = vec![1, 2, 3];
     let v3 = vec![3, 2, 1];
-    println!("v1 == v3: {}", v1 == v3);  // this will return false cuzz order does matter for vec, but remember if it would have been sets or hashmaps -- order does not matter for them so would have been true`
-      }
-    ]
+    println!("v1 == v3: {}", v1 == v3);  // this will return false cuzz order does matter for vec, but remember if it would have been sets or hashmaps -- order does not matter for them so would have been true`,
+      },
+    ],
   },
 
   // =========================================================
@@ -131,7 +131,7 @@ let a : [Vec<i32>; 10] = [10 vecs upfront will come]
 b: [[u8; 3]; 3], // its type is this array of 3 array fixed size all
 pub fn accept(a:[bool; 4]) {} // function will take like this argument if passed array
     let mut a = [1,2,3];
-    a[0] = 10; // we cannot change the len of an array but can mutate already existing values only if array is mutable`
+    a[0] = 10; // we cannot change the len of an array but can mutate already existing values only if array is mutable`,
       },
       { type: "subtitle", content: "Ownership & Iteration" },
       {
@@ -141,9 +141,9 @@ pub fn accept(a:[bool; 4]) {} // function will take like this argument if passed
 a.clone() // clones array 
 a.iter() // supports all types of iterator
 a.into_iter() // only consumes if a has any non-copy types; else it does not
-a.into_iter().collect() ❌ // collect does not work on fixed data types at all, like ever, diff methods exist`
-      }
-    ]
+a.into_iter().collect() ❌ // collect does not work on fixed data types at all, like ever, diff methods exist`,
+      },
+    ],
   },
 
   // =========================================================
@@ -179,15 +179,15 @@ fn main() {
 pub fn accept(_s: &[i32]) {}
 
 s.iter().max() // slices support max() function just remember, max returns Options !
-s.to_vec // to_vec is heavily used for slice, string, array to convert into vector == s.iter().copied().collect()`
+s.to_vec // to_vec is heavily used for slice, string, array to convert into vector == s.iter().copied().collect()`,
       },
       { type: "subtitle", content: "Conversion Issues" },
       {
         type: "code",
         code: `vec -> slice -> vec is not a problem 
-arr -> slice -> arr is a problem we cnnot just iter.copied().collect to convert slice -> arr`
-      }
-    ]
+arr -> slice -> arr is a problem we cnnot just iter.copied().collect to convert slice -> arr`,
+      },
+    ],
   },
 
   // =========================================================
@@ -202,7 +202,7 @@ arr -> slice -> arr is a problem we cnnot just iter.copied().collect to convert 
       {
         type: "code",
         code: `if a == "red" // here red is not owned by anyone but program itself
-let b = String::from("red") // red owned by b`
+let b = String::from("red") // red owned by b`,
       },
       { type: "subtitle", content: "Types & Comparisons" },
       {
@@ -211,9 +211,9 @@ let b = String::from("red") // red owned by b`
 let str1 = "BOB".to_string() // now its of type String
     let str1 = "hello";
     let str2 = "hello";
-    println!("str1 == str2: {}", str1 == str2); // we can compare using == `
-      }
-    ]
+    println!("str1 == str2: {}", str1 == str2); // we can compare using == `,
+      },
+    ],
   },
 
   // =========================================================
@@ -232,14 +232,14 @@ let str1 = "BOB".to_string() // now its of type String
 }
 let s = S { f: 3 }; // normal instanciation and can be now read as s.f 
 #[derive(Debug)] // for struct its required to have Debug attribute to inherit the fmt functtion of a predefined trait
-distance(point); // if point is a struct instance and passed in a function which is public the struct will just give warning if the struct is in same crate but will give error if in diff crate and trying so need to make the struct as pub as well cuzz function is also pub`
+distance(point); // if point is a struct instance and passed in a function which is public the struct will just give warning if the struct is in same crate but will give error if in diff crate and trying so need to make the struct as pub as well cuzz function is also pub`,
       },
       { type: "subtitle", content: "Destructuring" },
       {
         type: "code",
-        code: `pub fn area(Rectangle { upper: (ux, uy), lower: (lx, ly) }: Rectangle) -> u32 // suppose a struct is a struct of tuples this is how one can destructure a struct in the function argument where Rectantct is a struct`
-      }
-    ]
+        code: `pub fn area(Rectangle { upper: (ux, uy), lower: (lx, ly) }: Rectangle) -> u32 // suppose a struct is a struct of tuples this is how one can destructure a struct in the function argument where Rectantct is a struct`,
+      },
+    ],
   },
 
   // =========================================================
@@ -255,7 +255,7 @@ distance(point); // if point is a struct instance and passed in a function which
         type: "code",
         code: `// EnumName.enum is wrong way isntead EnumName::enum is write eg :
  Color::White // this is how you access a attribute of Color enum 
-// if an enum is returned from a \`pub\` fn, the enum has to be also public`
+// if an enum is returned from a \`pub\` fn, the enum has to be also public`,
       },
       { type: "subtitle", content: "Issues & Macros Fixes" },
       {
@@ -264,9 +264,9 @@ distance(point); // if point is a struct instance and passed in a function which
 println!("{:?}", Pet::Dog) // ❌ -- due to missing fmt function for enums, we cannot print, but this function can be added to enum's using \`#[derive(Debug)]\`
 #[derive(Clone, Copy)] // enums are not by default copy types for obvious reason so we can make it like this of Copy types, remember although Clone just provides .clone funtion its mandatory to make enum of copy types by making it clone type also other wise error
 
-#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`
-      }
-    ]
+#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`,
+      },
+    ],
   },
 
   // =========================================================
@@ -284,15 +284,15 @@ println!("{:?}", Pet::Dog) // ❌ -- due to missing fmt function for enums, we c
 #[derive(Debug)] // adds fmt() (internal function), so that println!() can start prinitng enums or struct
 #[derive(Debug, Clone)] // now adds both clone() function & fmt() 
 #[derive(Clone, Copy)] // makes clone and copy type for ownership concept removal
-#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`
+#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`,
       },
       { type: "subtitle", content: "Anchor + Macros" },
       {
         type: "code",
         code: `#[instruction(poll_id : u64)] // if an account wanna use the passed argument before the function call !
-seeds = [b"poll", poll_id.to_le_bytes().as_ref()] // here for eg : the poll_id an argument of a function is used as a seed for #[derive(Accounts)] account`
-      }
-    ]
+seeds = [b"poll", poll_id.to_le_bytes().as_ref()] // here for eg : the poll_id an argument of a function is used as a seed for #[derive(Accounts)] account`,
+      },
+    ],
   },
 
   // =========================================================
@@ -323,7 +323,9 @@ owner = xyz // makes sure the below passed accounts.owner field is xyz
 constraint = (from.points) >= amount @ Errors::InsufficientPoints // literally moving the check of instruction to this instruction Struct to update, just like has_one which can be checked using ctx inside the instructions
 from: Account<'info, Player>,
 
-)]`
+// how to check if field is a Vec like : pub auths: Vec<Pubkey>
+constraint = struct_account.auths.contains(&signer.key()) @ ErrorCodes::whateverError
+)]`,
       },
       { type: "subtitle", content: "Account Types" },
       {
@@ -340,7 +342,7 @@ pub mint: InterfaceAccount<'info, Mint>, // # This accepts both the original Tok
 // ! Account<'info, Mint> This usually only accepts the original Token Program
 // UncheckedAccount can be converted to AccountInfo using \`.to_account_info()\`
 
-// Here T can be custom structs or :`
+// Here T can be custom structs or :`,
       },
       { type: "subtitle", content: "Create a PDA - Mint Type Account" },
       {
@@ -354,7 +356,7 @@ pub mint: InterfaceAccount<'info, Mint>, // # This accepts both the original Tok
    mint::authority = authority, // Account<'info, T> allows checks like has_one, ownership, etc.
    mint::token_program = token_program // Interface<'info, TokenInterface> -> Owner becomes SPL Token Program
 )]
-pub f_token_mint: InterfaceAccount<'info, Mint>,`
+pub f_token_mint: InterfaceAccount<'info, Mint>,`,
       },
       { type: "subtitle", content: "Metaplex Metadata Account" },
       {
@@ -401,12 +403,14 @@ MetadataAccount { // THE OUTER BOX (Solana Account Wrapper)
             creators: null                                      // 🎨 Creators list
         }
     }
-}`
+}`,
       },
-      { type: "subtitle", content: "MintInfo types" },
+      { type: "subtitle", content: "Mint" },
       {
         type: "code",
-        code: `MintInfo { // THE OUTER BOX (The Solana System Wrapper)
+        code: `// if you provide the ATA type of account in Mint and expect it to pass cuzz the owner of both are same, svm also checks for the data length etc...
+
+Mint { // THE OUTER BOX (The Solana System Wrapper)
 
     key:      "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",   // 📍 Keypair public Account address
     owner:    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",   // 👷 The LANDLORD — must be the SPL Token Program
@@ -414,12 +418,96 @@ MetadataAccount { // THE OUTER BOX (Solana Account Wrapper)
     executable: false,                                 // ⚙️ CODE? (False = pure data storage)
     data : {
         mint_authority:   Some("----Circle's Address----"),  // 🏭 Who can mint new tokens? (Circle's mint authority for USDC — or None if renounced)
-        supply:           9_999_999_999_999_000,                  // 💵 Total tokens ever minted (in smallest units — here ~10 billion USDC)
-        decimals:         6,                                      // 🔢 How many decimal places? (USDC = 6)
-        is_initialized:   true,                                   // 🚦 Has initialize_mint() been called? (almost always true)
-        freeze_authority: None,                                   // 🥶 Who can freeze token accounts? (None = no freezing possible — common for stablecoins)
+        supply:           9_999_999_999_999_000,             // 💵 Total tokens ever minted (in smallest units — here ~10 billion USDC)
+        decimals:         6,                                 // 🔢 How many decimal places? (USDC = 6)
+        is_initialized:   true,                              // 🚦 Has initialize_mint() been called? (almost always true)
+        freeze_authority: None,                              // 🥶 Who can freeze token accounts? (None = no freezing possible — common for stablecoins)
     },
-}`
+}`,
+      },
+      { type: "subtitle", content: "TokenAccount / ATA of any Token" },
+      {
+        type: "code",
+        code: `// 99% of the time a TokenAccount is gonna be ATA but some times it could also be a Keypair account of any user ! -- just like USDC is a KeyPair account -- if the user wants 
+// if you provide the ATA type of account in TokenAccount and expect it to pass cuzz the owner of both are same, svm also checks for the data length etc... so will revert
+
+TokenAccount {
+    // --- THE OUTER BOX (Solana Account Header) ---
+    key:        "---unique ATA/PDA address---",       // 📍 hash(walletaddress | ProgramId | Mint token)
+    owner:      "--SPL Token Program---",             // 👷 The LANDLORD (Must be SPL Token or Token-2022)
+    lamports:   2039280,                              // 💰 Rent (Token accounts take more space than Mints, so more SOL)
+    executable: false,                                // ⚙️ Pure Data
+    
+    // --- THE INNER DATA (The Token Account Struct) ---
+    data: {
+        mint: "--USDC address---",       // 🪙 WHICH TOKEN? (Points to the USDC Mint address)
+        
+        authority: "--ALICE address--",  // 🔑 THE OWNER (The wallet address that has permission to spend)
+        
+        amount: 500_000_000,             // 💵 BALANCE (In raw units. Decimals=6, so this is 500.00 USDC)
+        
+        delegate: Some("Lending.."),     // 🤝 THE AGENT (If you gave a program permission to spend for you)
+        
+        delegated_amount: 100_000,       // 🛡️ ALLOWANCE (How much the 'delegate' is allowed to spend)
+        
+        state: "Initialized",            // 🚦 STATUS (Uninitialized, Initialized, or Frozen)
+        
+        is_native: None,                 // 🌍 WRAPPED SOL? (Contains a value if this is a 'Wrapped SOL' account)
+        
+        close_authority: None,           // 🗑️ THE JANITOR (Who can close this account and take the rent SOL)
+    },
+}`,
+      },
+      {
+        type: "subtitle",
+        content: "Implimentation of assigning a MetaPleex's URI using trait",
+      },
+      {
+        type: "code",
+        code: `#[derive(Accounts)]
+pub struct XYZ<'info> {}
+
+impl XYZ <'_> {} // writing <'_> is basically nothing but saying same lifetime as my struct 
+impl XYZ <'_> {} == impl<'info> InitLending<'info> {} // u could have written it like that as well its same 
+
+// Next see how you can write a trait :
+
+impl XYZ<'_> {
+    pub fn some_function(&self, symbol: String) -> Result<()> // here &self gives you the access to the main XYZ struct & its fields which you can use in ur trait 
+
+// Next see how you can write a trait to assign metaplex's URi for ur custom TokenAccount (either ATA/Keypair Token)
+
+// imports mandatory :
+use mpl_token_metadata::{
+    instructions::CreateV1CpiBuilder,
+    types::{PrintSupply, TokenStandard},
+    ID as TOKEN_METADATA_PROGRAM_ID, // * metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s
+};
+
+// how to do CPI (Cross-Program Invocation) as below, remember where ever the address goes its actaully expects the type AccountInfo or UncheckedAccount :
+
+CreateV1CpiBuilder::new(---Metadata Program account----) // just like Vec::new(array)
+.metadata(---pre calc metadata address account---) 
+.mint(token_account_whose_URI_is_being_created, is_it_the_signer) // (account, false) // use .to_account_info() if you wanna convert any type to AccountInfo type
+.authority(who_is_autority) // dont forget to use to_account_info
+.update_authority(account, can_he_update) // account, true or false if its allowed to update
+.payer(account) // who is signing this instruction , dont forget to use to_account_info()
+.system_program(account) // again to_account_info system program
+.sysvar_instructions(sysvar account) // sysvar account to_account_info()
+.spl_token_program(Some(SPL_Token_account)) // last place where you can use to_aacount_info, below onwards its not used
+.token_standard(TokenStandard:Fungible) // Fungible or non fungible
+.seller_fee_basis_points(0) // seller fee basis points
+.print_supply(PrintSupply : Unlimited) // cap
+.name(var.clone()) // clone is used so that the var is not moved
+.symbol(var.clone()) // same for symbol
+.uri(metadata_uri) 
+// metadata uri which is created as : 
+        const JL_TOKEN_URI: &str = "https://cdn.instadapp.io/solana/tokens/metadata/"
+        let metadata_uri = JL_TOKEN_URI.to_owned() + &format!("{}.json", symbol.to_lowercase());
+.decimals(keep it same as ur created token account) 
+.invoke_signed(signer_seeds)?; // since this instruction due to metaplex is gonna sign an tx for another program externally and usually a private key signs a external tx, but no program has a private key in them to sign so : in invoke_signed in my example its expected that the instruction is gonna start from a PDA who is the signer as well so : program PDA says am gonna sign it using my unique seed + bump (which i got when i was created)
+
+// here signer_seeds :  &[&[&[u8]]] = &[&[seed_given_when_created, &[self.the_bump_saved_when_this_PDA_was_created.bump]]];`,
       },
       { type: "subtitle", content: "Functional Macro" },
       {
@@ -432,7 +520,7 @@ MetadataAccount { // THE OUTER BOX (Solana Account Wrapper)
 // below ususally used with Zero-Copy cuzz, the program maps the on-chain data directly to a // Rust struct without "copying" it into memory. For this to work safely,
 #[repr(C, packed)] // C :: Do not move my fields, Keep them exactly in the order, This makes the data predictable and cross-compatible. packed :: Remove all padding." Squash the fields together as tightly as possible.
 
-AccountLoader<'info, T>, // for bigger structs and in a efficient way use AccountLoader, for smaller use Account, also when you use AccountLoader now inside the function you can only get the account using : ctx.account.xyz.load() where as normally you would do : ctx.account.load()`
+AccountLoader<'info, T>, // for bigger structs and in a efficient way use AccountLoader, for smaller use Account, also when you use AccountLoader now inside the function you can only get the account using : ctx.account.xyz.load() where as normally you would do : ctx.account.load()`,
       },
       { type: "subtitle", content: "Talking to SPL Tokens" },
       {
@@ -460,7 +548,7 @@ use anchor_spl::{
         ExtensionType,           // The specific "Feature Flag" (e.g., is this a TransferFeeConfig?).
         StateWithExtensions,     // The tool to unpack the extra data bytes at the end of the account.
     },
-};`
+};`,
       },
       { type: "subtitle", content: "anchor_spl derived struct" },
       {
@@ -471,12 +559,12 @@ from : // expects AccountInfo
 to : // expects AccountInfo
 authority : // expects AccountInfo
 mint : // expects AcccountInfo 
-}`
+}`,
       },
       { type: "subtitle", content: "Derive Macro" },
       {
         type: "code",
-        code: `#[derive(AnchorSerialize, AnchorDeserialize, Clone)] // any cutom struct 1st time entering in solana world through the frontend world, that is passed as arguments`
+        code: `#[derive(AnchorSerialize, AnchorDeserialize, Clone)] // any cutom struct 1st time entering in solana world through the frontend world, that is passed as arguments`,
       },
       { type: "subtitle", content: "What Anchor Imports" },
       {
@@ -486,30 +574,7 @@ AccountInfo, // UncheckAccount but the struct belong to Rust not Anchor
 Pubkey, 
 Context, 
 Result, 
-and msg!`
-      },
-      { type: "subtitle", content: "How Structs Look (ATA Example)" },
-      {
-        type: "code",
-        code: `ATA :
-
-AccountInfo { // THE OUTER BOX (The Solana System Wrapper)
-
-key:      "7X...9z",        // 📍hash(Alice_Address + Token_Program_ID + Mint_Address)
-owner:    "Tokenkeg...11",  // 👷 The LANDLORD (Must be SPL Token Program Address)
-lamports: 2039280,          // 💰 Rent money to keep the box alive
-executable: false,          // ⚙️ CODE? (False = It's storage, not a program)
-data : {
-    mint:             "USDC MINT PublicKey", // 🏦 MINT Account Address
-    owner:            "ALICE PublicKey",     // 👤 USER's Real Public Account Address
-    amount:           1000000,               // 💵 MINT Balance
-    delegate:         None,                  // 🔑 SPENDER (Is someone else allowed to spend?)
-    state:            1,                     // 🚦 STATUS (1 = Initialized, 2 = Frozen)
-    is_native:        0,                     // 📦 WRAPPED SOL? (0 = No, it's a standard token)
-    delegated_amount: 0,                     // 💳 ALLOWANCE (How much can the delegate spend?)
-    close_authority:  None,                  // 🚪 CLOSER (Who gets the rent back if closed?)
-},
-}`
+and msg!`,
       },
       { type: "subtitle", content: "Account Creation Struct" },
       {
@@ -527,17 +592,27 @@ data : {
      realloc = size_of::<StructName>() + 8 + 1000,  // wanna increase the data size, by 1000     
      realloc::payer = signer,        // extra lamports will be given by signer      
      realloc::zero = false,       // false indicate dont erase the old data, true means erase the old one
-)]`
+)]`,
       },
       { type: "subtitle", content: "Context & Lamports" },
       {
         type: "code",
-        code: `ctx.accounts.acct.to_account_info().lamports() // ❗remember it tells the total lmaport of an account -- which will have some sol transferred by someone + rent extempt sol to keep the account alive`
+        code: `ctx.accounts.acct.to_account_info().lamports() // ❗remember it tells the total lmaport of an account -- which will have some sol transferred by someone + rent extempt sol to keep the account alive`,
       },
       { type: "subtitle", content: "Inside the fucntion" },
       {
         type: "code",
-        code: `Pubkey::default() // system_prgram public key \`1111....32 times...1111\`// [0, 0, 0, ... 0] zero address in bytes, in solana if mistakenly you dont put any Pubkey it defaults it to system_program;s address`
+        code: `Pubkey::default() // system_prgram public key \`1111....32 times...1111\`// [0, 0, 0, ... 0] zero address in bytes, in solana if mistakenly you dont put any Pubkey it defaults it to system_program;s address`,
+      },
+      { type: "subtitle", content: "sysvar account" },
+      {
+        type: "code",
+        code: `#[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+pub sysvar_instruction: UncheckedAccount<'info>, // a specific constant address, Allows the program to "look" at the other instructions in the same transaction (Introspection).
+// Why it's likely there: It is usually used to prevent Flash Loans or to ensure the user isn't doing something "tricky" in a different part of the transaction.
+
+pub rent: Sysvar<'info, Rent>, // Tells the program how much SOL is needed to keep an account alive on the blockchain so it doesn't get deleted.
+// Why it's likely there: it was used before but now has not much use old version of splana uses it`,
       },
       { type: "subtitle", content: "Transfer Native SOL (CPI)" },
       {
@@ -588,19 +663,9 @@ if res.is_ok() {            // succeeded ?
 
 ctx.remaining_accounts // is an array of unchecked accounts which need not to be mentioned in the struct at all
 let amount_each_gets = amount / ctx.remaining_accounts.len() as u64; // you can know its len
- for recipient in ctx.remaining_accounts { // can loop through it`
+ for recipient in ctx.remaining_accounts { // can loop through it`,
       },
-      { type: "subtitle", content: "sysvar account" },
-      {
-        type: "code",
-        code: `#[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
-pub sysvar_instruction: UncheckedAccount<'info>, // a specific constant address, Allows the program to "look" at the other instructions in the same transaction (Introspection).
-// Why it's likely there: It is usually used to prevent Flash Loans or to ensure the user isn't doing something "tricky" in a different part of the transaction.
-
-pub rent: Sysvar<'info, Rent>, // Tells the program how much SOL is needed to keep an account alive on the blockchain so it doesn't get deleted.
-// Why it's likely there: it was used before but now has not much use old version of splana uses it`
-      }
-    ]
+    ],
   },
 
   // =========================================================
@@ -612,7 +677,11 @@ pub rent: Sysvar<'info, Rent>, // Tells the program how much SOL is needed to ke
     summary: "No duplicates, no guaranteed order.",
     sections: [
       { type: "subtitle", content: "HashSet" },
-      { type: "note", content: "Note: The order of elements in the HashSet output may vary since HashSets don't guarantee any particular order. looks like {1,2,3} and does not have duplicates" },
+      {
+        type: "note",
+        content:
+          "Note: The order of elements in the HashSet output may vary since HashSets don't guarantee any particular order. looks like {1,2,3} and does not have duplicates",
+      },
       {
         type: "code",
         code: `use std::collections::HashSet;
@@ -628,14 +697,14 @@ s.remove(&10); // <@ remove does not result in an error if you remove a non-exis
 let set2 = set.clone(); // <@ similarly cloning also works for it
 
 s1.extend(s2); // <@ only if s1 is mut, you can kind of join the s2 in it and it will be done, only s1 updates, s2 is still same 
-s.into_iter(); // <@ indexing not supported in set, so conert it to a iterator & with the help of for loop could acces elements`
+s.into_iter(); // <@ indexing not supported in set, so conert it to a iterator & with the help of for loop could acces elements`,
       },
       { type: "subtitle", content: "Dereferencing Issues" },
       {
         type: "code",
         code: `let x = vec![1, 2, 3]; 
 let ref_x = &x;
-*ref_x // ❌ will revert not possible to dereference a collection like an simple type`
+*ref_x // ❌ will revert not possible to dereference a collection like an simple type`,
       },
       { type: "subtitle", content: "Comparisons" },
       {
@@ -643,9 +712,9 @@ let ref_x = &x;
         code: `    // Sets (order doesn't matter for sets!)
     let s1 = HashSet::from([1, 2, 3]);
     let s2 = HashSet::from([3, 1, 2]);
-    println!("s1 == s2: {}", s1 == s2); `
-      }
-    ]
+    println!("s1 == s2: {}", s1 == s2); `,
+      },
+    ],
   },
 
   // =========================================================
@@ -663,15 +732,15 @@ let ref_x = &x;
 let y = z; // agian here y will take up the ownership or consume the the vec inside the tuple so a tuple with set, vec or other collection have ownership issues, but a number or bool will not be a problem
 z.0 & z.1 etc.. // could be used to access tuples inside data
 (x, y, z): (i32, i32, i32); // instead of .0 & .1 we can unpack a tuple as follows
-x.clone(); // clone works but only if typle does not have any dynamic collection in it`
+x.clone(); // clone works but only if typle does not have any dynamic collection in it`,
       },
       { type: "subtitle", content: "Dereferencing" },
       {
         type: "code",
         code: `let tup = &(1,2) 
-*tup  // dereferencing like this works for tuple unless it does not have any collection in it -- lill different collection`
-      }
-    ]
+*tup  // dereferencing like this works for tuple unless it does not have any collection in it -- lill different collection`,
+      },
+    ],
   },
 
   // =========================================================
@@ -697,37 +766,70 @@ let variable = Some(any number, or collection) // any thing could be wrappe in a
 let max_val = match a.iter().max() {
     Some(m) => m,
     None => return vec![], // => itself is a return but extra return exists if you wann return from the function this code is it itself !
-};`
-      }
-    ]
+};`,
+      },
+    ],
   },
 
   // =========================================================
-  // 15. UTILITY FUNCTIONS
+  // 15. ::from() (New)
+  // =========================================================
+  {
+    id: "from_trait",
+    title: "::from()",
+    summary: "Type conversions without loss.",
+    sections: [
+      { type: "subtitle", content: "Basics" },
+      {
+        type: "code",
+        code: `let a: i16 = 120;
+let b = i32::from(a); // i32 can be converted into i64 and u8 can be converted into u32 but Converting in the other direction however may result in information loss, so it cannot be done with ::from.
+
+pub fn zero_one(b: bool) -> i32 { // similarly a bool can be converted as well 
+    i32::from(b) // either 0 or 1 depending upon b true or false
+}
+
+Some(42) ==  Option::from(42) // this is also correct but no one really ever uses it !`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 16. UTILITY FUNCTIONS
   // =========================================================
   {
     id: "utility",
     title: "Utility Functions",
-    summary: "Math and helpers.",
+    summary: "Math, formatting, and helpers.",
     sections: [
-      { type: "subtitle", content: "Math" },
+      { type: "subtitle", content: "Math & Strings" },
       {
         type: "code",
         code: `f32::sqrt(a); // sqrt of a
-a.powi(b).  // a^b`
-      }
-    ]
+a.powi(b).  // a^b
+
+i32::from(a); // converting whaterve a is of type to i32 -- make sure no loss happens
+string_var.to_uppercase() // converts upper case
+string_var.to_lowercase() // converts to lower case
+only_borrowed_reference_value.to_owned() // only works in any type of "Borrowed" reference, now it makes you the owner of the referenced value and a copy so that now you can edit it previously it was owned by someone else and that is the reason you got & reference so now you have a copy and u are the owner 
+format!() // creates a new string eg : format!("jl-{}", symbol.to_uppercase()); -> \`jl-XYZ\` if xyz is symbol`,
+      },
+    ],
   },
 
   // =========================================================
-  // 16. HASHMAPS
+  // 17. HASHMAPS
   // =========================================================
   {
     id: "hashmaps",
     title: "Hashmaps aka maps",
     summary: "Key-value storage.",
     sections: [
-      { type: "note", content: "Remember, keys in a HashMap must remain immutable after insertion. Since modifying a key would change its hash and potentially collide with existing keys, you must create a new HashMap and reassign entries instead of mutating keys directly." },
+      {
+        type: "note",
+        content:
+          "Remember, keys in a HashMap must remain immutable after insertion. Since modifying a key would change its hash and potentially collide with existing keys, you must create a new HashMap and reassign entries instead of mutating keys directly.",
+      },
       { type: "subtitle", content: "Map Basics" },
       {
         type: "code",
@@ -745,7 +847,7 @@ hm.keys(); // returns ITERATOR over REFERENCE to the keys
 hm.values(); // returns ITERATOR over REFERENCE to the values
 
 .values_mut() // it returns an iterator of mutable references to the values in the HashMap
-.iter_mut() // does not consume the collection remember`
+.iter_mut() // does not consume the collection remember`,
       },
       { type: "subtitle", content: "Iteration & Values" },
       {
@@ -755,14 +857,14 @@ hm.values(); // returns ITERATOR over REFERENCE to the values
 
 pub fn prod_values(m: &HashMap<i32, i32>) -> i32 { // 1 line soln to get product of values of a map
     m.values().copied().product()
-}`
+}`,
       },
       { type: "subtitle", content: "Dereferencing Issues" },
       {
         type: "code",
         code: `let x = vec![1, 2, 3]; 
 let ref_x = &x;
-*ref_x // ❌ will revert not possible to dereference a collection like an simple var`
+*ref_x // ❌ will revert not possible to dereference a collection like an simple var`,
       },
       { type: "subtitle", content: "Comparisons" },
       {
@@ -770,13 +872,13 @@ let ref_x = &x;
         code: `    // HashMaps (order doesn't matter!)
     let m1 = HashMap::from([(3, 4), (1, 2)]);
     let m2 = HashMap::from([(1, 2), (3, 4)]);
-    println!("m1 == m2: {}", m1 == m2); `
-      }
-    ]
+    println!("m1 == m2: {}", m1 == m2); `,
+      },
+    ],
   },
 
   // =========================================================
-  // 17. TRAIT & IMPLEMENTATION
+  // 18. TRAIT & IMPLEMENTATION
   // =========================================================
   {
     id: "trait_impl",
@@ -786,23 +888,25 @@ let ref_x = &x;
       { type: "subtitle", content: "Basics" },
       {
         type: "note",
-        content: "if struct & trait name is kept same we can omit defining trait & directly write imp struct {} and put the logic"
+        content:
+          "if struct & trait name is kept same we can omit defining trait & directly write imp struct {} and put the logic",
       },
       {
         type: "note",
-        content: "trait -> is like an interface, only function defination, no logic"
+        content:
+          "trait -> is like an interface, only function defination, no logic",
       },
       {
         type: "code",
         code: `// as you can see below is its implimenting a trait, differently for both the structs 
 imp trait for struct1 {} // here goes the logic1 for struct1 but for same trait
-imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
-      }
-    ]
+imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`,
+      },
+    ],
   },
 
   // =========================================================
-  // 18. ITERATOR & RANGES
+  // 19. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -816,13 +920,13 @@ imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
 // A type of &mut &mut doesn't support into_iter() & also takes ownership of any_collection 
 
 <new collection type> = any_collection.into_iter().collect() // iterator.collect() makes any collection of other mentioned collection 
-eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically from any collection to any other`
+eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically from any collection to any other`,
       },
       { type: "subtitle", content: "Iter & Copied Details" },
       {
         type: "code",
         code: `s.iter() // this will revert is s is reference to mutable (&mut) cuzz iter gives only reference to immutable object
-.copied() // takes & to anything and returns without it but also if its &mut it will even eat the mut too so &mut i32 == &i32 after the copied is gonna be i32`
+.copied() // takes & to anything and returns without it but also if its &mut it will even eat the mut too so &mut i32 == &i32 after the copied is gonna be i32`,
       },
       { type: "subtitle", content: "Functions that only support Iterators" },
       {
@@ -831,7 +935,7 @@ eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically fro
 .min() & max() // returns an Option cuzz the collection might be empty
 .product() // returns product
 .nth(0) // Option : can access iterator as index, will output different result for a set as iterator
-.count() // gets the len of an iterator`
+.count() // gets the len of an iterator`,
       },
       { type: "subtitle", content: "consumption" },
       {
@@ -847,7 +951,7 @@ for e in w  vs for e in w.iter_mut() // both same but w.iter_mut() does not cons
 // above was very big and verbose so lets shorten it 
 v.iter() == &v(in a for loop) == (&v).into_iter() == (&v).iter(); // and does not consume the collection
 // above gives us the reference to the value
-but v.into_iter() will consume the vec but give value only`
+but v.into_iter() will consume the vec but give value only`,
       },
       { type: "subtitle", content: "References & Copied" },
       {
@@ -858,7 +962,7 @@ v.iter() == &v).iter() == (&&v).iter() == (&&&v).iter()
 
 Vec<i32>.iter() // iterator of &i32 ill need .copied() to get i32
 Vec<&i32>.iter() // iterator of &&i32 will need 2 times .copied() to get i32
-Vec<&&i32>.iter() // 3 iterator & 3 copied to get i32`
+Vec<&&i32>.iter() // 3 iterator & 3 copied to get i32`,
       },
       { type: "subtitle", content: "Intrestingly" },
       {
@@ -878,9 +982,9 @@ into_iter() on &Vec<i32>, &Vec<&i32>, &Vec<&&i32>  will give &i32, &&i32, &&&i3
 (&v).iter != &v.iter -- same for into_iter 
 cuzz for later we will be producing &Vec<i32>
 (&v) == (&&&&&&&&&v)
-into_iter absorbs just 1 outer & and rest of it ignores`
+into_iter absorbs just 1 outer & and rest of it ignores`,
       },
-      
+
       { type: "subtitle", content: "Cloning & References" },
       {
         type: "code",
@@ -889,9 +993,9 @@ into_iter absorbs just 1 outer & and rest of it ignores`
 let ref_ref_v = &&v; 
 // .clone().clone() will revert; 
 (*ref_ref_v).clone() // will work; 
-// **ref_ref_v will also revert -- it will work for copy types that is i32 etc..`
+// **ref_ref_v will also revert -- it will work for copy types that is i32 etc..`,
       },
-      
+
       { type: "subtitle", content: "Ranges" },
       {
         type: "code",
@@ -903,19 +1007,19 @@ let s : HashSet<u32> = (0..10).collect() // since ranges silently gets converted
 (0..10).step_by(var as usize)  //  step_by expects datatype to be of usize, by default if you give number it will automatically convert it but, if given a explicit number which is assigned to variable of different data type we need to explicitly convert it to usize 
 
 1..=5 // this range will now run till 5 not 4 
-(4..=8).rev() // will run from 10 to 1 also need to check the combo of (8..=4).rev() & (4..=8).rev()`
+(4..=8).rev() // will run from 10 to 1 also need to check the combo of (8..=4).rev() & (4..=8).rev()`,
       },
       { type: "subtitle", content: "Range as a Type" },
       {
         type: "code",
         code: `use std::ops::Range;
-let my_range: Range<i32> = 0..10;`
-      }
-    ]
+let my_range: Range<i32> = 0..10;`,
+      },
+    ],
   },
 
   // =========================================================
-  // 19. OWNERSHIP & CONSUMPTION
+  // 20. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -939,10 +1043,14 @@ let my_range: Range<i32> = 0..10;`
 
 fn transferOwnership(v: Vec<i32>) {
     println!("{:?}", v);
-}`
+}`,
       },
-      { type: "note", content: "Once ownership moves, the original variable is invalid in the current scope." },
-      
+      {
+        type: "note",
+        content:
+          "Once ownership moves, the original variable is invalid in the current scope.",
+      },
+
       { type: "subtitle", content: "more ways to consume" },
       {
         type: "code",
@@ -951,9 +1059,9 @@ let v = vec![1, 2, 3];
 let w = v; // <@ w consumed v or ownership of v transferred, so cannot use v anymore
 let x = v.into_iter(); // into_iter() consumed v 
 
-}`
+}`,
       },
-      
+
       { type: "subtitle", content: "3. Avoid Consumption" },
       {
         type: "code",
@@ -961,17 +1069,17 @@ let x = v.into_iter(); // into_iter() consumed v
         code: `// ANSWER : PASS by REFERENCE
 let v = vec![1, 2, 3];
 transferOwnership(&v); // <@ pass by reference, does not let func consume the vec
-pub fn transferOwnership(v: &Vec<i32>) {}`
+pub fn transferOwnership(v: &Vec<i32>) {}`,
       },
       {
         type: "code",
         label: "Reference Assignment",
         code: `let x = vec![1, 2, 3];
 let y = &x;     // <@ y is not the consumer or owner of x
-let y = x.clone().into_iter() // <@ clone does not let original x to be consumed aka ownership transfer`
-      }
-    ]
-  }
+let y = x.clone().into_iter() // <@ clone does not let original x to be consumed aka ownership transfer`,
+      },
+    ],
+  },
 ];
 
 const Component6 = () => {
@@ -990,29 +1098,49 @@ const Component6 = () => {
           <h1 className="main-title">Rust Quick Lookup</h1>
           <div className="cards-container">
             {TOPICS.map((topic) => (
-              <div 
+              <div
                 key={topic.id}
-                className="lookup-card" 
+                className="lookup-card"
                 onClick={() => setActiveView(topic.id)}
               >
                 <div className="card-icon">
-                   {topic.title.toLowerCase().includes("ownership") ? "🦀" : 
-                    topic.title.toLowerCase().includes("vector") ? "📦" :
-                    topic.title.toLowerCase().includes("hash") ? "🔑" :
-                    topic.title.toLowerCase().includes("loop") ? "🔄" :
-                    topic.title.toLowerCase().includes("cast") ? "🔀" :
-                    topic.title.toLowerCase().includes("if") ? "❓" : 
-                    topic.title.toLowerCase().includes("tuple") ? "🍱" : 
-                    topic.title.toLowerCase().includes("option") ? "🤷" : 
-                    topic.title.toLowerCase().includes("array") ? "🔢" : 
-                    topic.title.toLowerCase().includes("slice") ? "🔪" :
-                    topic.title.toLowerCase().includes("string") ? "🧵" :
-                    topic.title.toLowerCase().includes("enum") ? "🚥" :
-                    topic.title.toLowerCase().includes("macro") ? "🏗️" :
-                    topic.title.toLowerCase().includes("struct") ? "🏛️" :
-                    topic.title.toLowerCase().includes("utility") ? "🛠️" : 
-                    topic.title.toLowerCase().includes("trait") ? "🧩" :
-                    topic.title.toLowerCase().includes("anchor") ? "⚓" : "📝"}
+                  {topic.title.toLowerCase().includes("ownership")
+                    ? "🦀"
+                    : topic.title.toLowerCase().includes("vector")
+                    ? "📦"
+                    : topic.title.toLowerCase().includes("hash")
+                    ? "🔑"
+                    : topic.title.toLowerCase().includes("loop")
+                    ? "🔄"
+                    : topic.title.toLowerCase().includes("cast")
+                    ? "🔀"
+                    : topic.title.toLowerCase().includes("from")
+                    ? "➡️"
+                    : topic.title.toLowerCase().includes("if")
+                    ? "❓"
+                    : topic.title.toLowerCase().includes("tuple")
+                    ? "🍱"
+                    : topic.title.toLowerCase().includes("option")
+                    ? "🤷"
+                    : topic.title.toLowerCase().includes("array")
+                    ? "🔢"
+                    : topic.title.toLowerCase().includes("slice")
+                    ? "🔪"
+                    : topic.title.toLowerCase().includes("string")
+                    ? "🧵"
+                    : topic.title.toLowerCase().includes("enum")
+                    ? "🚥"
+                    : topic.title.toLowerCase().includes("macro")
+                    ? "🏗️"
+                    : topic.title.toLowerCase().includes("struct")
+                    ? "🏛️"
+                    : topic.title.toLowerCase().includes("utility")
+                    ? "🛠️"
+                    : topic.title.toLowerCase().includes("trait")
+                    ? "🧩"
+                    : topic.title.toLowerCase().includes("anchor")
+                    ? "⚓"
+                    : "📝"}
                 </div>
                 <h3>{topic.title}</h3>
                 <p>{topic.summary}</p>
@@ -1026,55 +1154,59 @@ const Component6 = () => {
       {activeView !== "grid" && (
         <div className="detail-view fade-in">
           <div className="detail-header">
-            <button className="back-button" onClick={() => setActiveView("grid")}>
+            <button
+              className="back-button"
+              onClick={() => setActiveView("grid")}
+            >
               ← Back
             </button>
-            <h2>{TOPICS.find(t => t.id === activeView)?.title}</h2>
+            <h2>{TOPICS.find((t) => t.id === activeView)?.title}</h2>
           </div>
 
           <div className="topics-list">
-            {TOPICS.filter(t => t.id === activeView).map((topic) => (
+            {TOPICS.filter((t) => t.id === activeView).map((topic) => (
               <div key={topic.id} className="topic-item expanded">
                 <div className="topic-body">
-                    {topic.sections.map((section, index) => (
-                      <div key={index} className="section-block">
-                        
-                        {/* 1. INTERNAL SUBTITLE */}
-                        {section.type === "subtitle" && (
-                          <h4 className="internal-subtitle">{section.content}</h4>
-                        )}
+                  {topic.sections.map((section, index) => (
+                    <div key={index} className="section-block">
+                      {/* 1. INTERNAL SUBTITLE */}
+                      {section.type === "subtitle" && (
+                        <h4 className="internal-subtitle">{section.content}</h4>
+                      )}
 
-                        {/* 2. TEXT NOTE */}
-                        {section.type === "note" && (
-                          <div className="topic-text-note">
-                            <p>{section.content}</p>
-                          </div>
-                        )}
+                      {/* 2. TEXT NOTE */}
+                      {section.type === "note" && (
+                        <div className="topic-text-note">
+                          <p>{section.content}</p>
+                        </div>
+                      )}
 
-                        {/* 3. CODE SNIPPET */}
-                        {section.type === "code" && (
-                          <div className="code-wrapper">
-                            {section.label && <span className="code-label">{section.label}</span>}
-                            <div className="topic-code-container">
-                              <SyntaxHighlighter 
-                                language="rust" 
-                                style={vscDarkPlus}
-                                showLineNumbers={true}
-                                wrapLines={true}
-                                customStyle={{
-                                  background: 'transparent',
-                                  padding: 0,
-                                  margin: 0,
-                                  fontSize: '0.95rem'
-                                }}
-                              >
-                                {section.code}
-                              </SyntaxHighlighter>
-                            </div>
+                      {/* 3. CODE SNIPPET */}
+                      {section.type === "code" && (
+                        <div className="code-wrapper">
+                          {section.label && (
+                            <span className="code-label">{section.label}</span>
+                          )}
+                          <div className="topic-code-container">
+                            <SyntaxHighlighter
+                              language="rust"
+                              style={vscDarkPlus}
+                              showLineNumbers={true}
+                              wrapLines={true}
+                              customStyle={{
+                                background: "transparent",
+                                padding: 0,
+                                margin: 0,
+                                fontSize: "0.95rem",
+                              }}
+                            >
+                              {section.code}
+                            </SyntaxHighlighter>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
