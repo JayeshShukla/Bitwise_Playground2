@@ -665,6 +665,428 @@ ctx.remaining_accounts // is an array of unchecked accounts which need not to be
 let amount_each_gets = amount / ctx.remaining_accounts.len() as u64; // you can know its len
  for recipient in ctx.remaining_accounts { // can loop through it`,
       },
+      {
+        type: "subtitle",
+        content:
+          "Anchor opening a PDA with seeds where the authority is the program itself & owner is system_program",
+      },
+      {
+        type: "code",
+        code: `use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
+
+declare_id!("22222222222222222222222222222222222222222222");
+
+#[program]
+pub mod blueshift_anchor_vault {
+    use super::*;
+
+    pub fn deposit(ctx: Context<VaultAction>, amount: u64) -> Result<()> {
+
+        require_eq!(ctx.accounts.vault.lamports(), 0, VaultError::VaultAlreadyExists);
+        require_gt!(amount, Rent::get()?.minimum_balance(0), VaultError::InvalidAmount);
+
+        let cpi_context = CpiContext::new(
+            ctx.accounts.system_account.to_account_info(),
+            Transfer{
+                from : ctx.accounts.signer.to_account_info(),
+                to : ctx.accounts.vault.to_account_info(),
+            }
+        );
+
+        transfer(cpi_context, amount)?;
+
+        Ok(())
+    }
+
+    pub fn withdraw(ctx: Context<VaultAction>) -> Result<()> {
+
+        require_neq!(ctx.accounts.vault.lamports(), 0, VaultError::InvalidAmount);
+
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            b"vault",
+            ctx.accounts.signer.to_account_info().key.as_ref(),
+            &[ctx.bumps.vault],
+        ]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_account.to_account_info(),
+            Transfer{
+                from : ctx.accounts.vault.to_account_info(),
+                to : ctx.accounts.signer.to_account_info(),
+            },
+            signer_seeds,
+        );
+
+        transfer(cpi_context, ctx.accounts.vault.lamports())?;
+
+        Ok(())
+    }
+
+}
+
+#[derive(Accounts)]
+pub struct VaultAction<'info> {
+
+    #[account(mut)]
+    pub signer : Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", signer.key().as_ref()],
+        bump,
+    )]
+    pub vault : SystemAccount<'info>,
+
+    pub system_account: Program<'info, System>,
+}`,
+      },
+      { type: "subtitle", content: "Blue shift solutions - state.rs" },
+      {
+        type: "code",
+        code: `use anchor_lang::prelude::*;
+
+#[derive(InitSpace)]
+#[account(discriminator=1)]
+pub struct Escrow {
+    pub seed : u64, // number for different Escrow Account for single User
+    pub maker : Pubkey, // Who creater this account ?
+    pub mint_a : Pubkey, // Give this to me
+    pub mint_b : Pubkey, // Get this from me
+    pub receive : u64,   // maker wants this much
+    pub bump : u8,       // saving this accounts bump once created
+}`,
+      },
+      { type: "subtitle", content: "Blue shift solutions - make.rs" },
+      {
+        type: "code",
+        code: `use anchor_lang::prelude::*;
+
+use crate::state::Escrow;
+
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::transfer_checked;
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface, TransferChecked};
+use crate::error::EscrowError;
+
+#[derive(Accounts)]
+#[instruction(seed : u64)]
+pub struct Make<'info> {
+
+    #[account(mut)]
+    pub maker : Signer<'info>,
+
+    #[account(
+        init,
+        payer = maker,
+        space = Escrow::INIT_SPACE + Escrow::DISCRIMINATOR.len(),
+        seeds = [b"escrow", maker.key().as_ref(), seed.to_le_bytes().as_ref()],
+        bump,
+    )]
+    pub escrow : Account<'info, Escrow>,
+
+    #[account(
+         mint::token_program = token_program
+    )]
+    pub mint_a : InterfaceAccount<'info, Mint>,
+
+    #[account(
+         mint::token_program = token_program
+    )]
+    pub mint_b : InterfaceAccount<'info, Mint>,
+
+    #[account(
+        mut, // * even if you are not opening the account here, you need to put mut, cuzz reducing USDC
+        associated_token::mint = mint_a,
+        associated_token::authority = maker,
+        associated_token::token_program = token_program
+    )]
+    pub maker_ata_a : InterfaceAccount<'info, TokenAccount>, // maker's real USDC account
+
+    #[account(
+        init,
+        payer = maker,
+        associated_token::mint = mint_a,
+        associated_token::authority = escrow,
+        associated_token::token_program = token_program,
+    )]
+    pub vault : InterfaceAccount<'info, TokenAccount>,
+
+    pub associated_token_program : Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub system_program : Program<'info, System>,
+}
+
+impl <'info> Make <'info> {
+    fn populate_escrow(&mut self, seed : u64, receive : u64, bump : u8) -> Result<()>{
+        self.escrow.set_inner(Escrow{
+            seed,
+            receive,
+            bump,
+            maker : self.maker.key(),
+            mint_a : self.mint_a.key(),
+            mint_b : self.mint_b.key(),
+        });
+        Ok(())
+    }
+
+    fn deposit_tokens(&mut self, amount : u64) -> Result<()> {
+
+        let cpi_context = CpiContext::new(
+            self.token_program.to_account_info(),
+            TransferChecked {
+                from : self.maker_ata_a.to_account_info(),
+                mint : self.mint_a.to_account_info(),
+                to : self.vault.to_account_info(),
+                authority : self.maker.to_account_info(),
+            }
+        );
+
+        transfer_checked(cpi_context, amount, self.mint_a.decimals)?;
+
+        Ok(())
+    }
+}
+
+pub fn handler(ctx: Context<Make>, seed : u64, receive : u64, amount : u64) -> Result<()> {
+
+    require_gt!(receive, 0, EscrowError::InvalidAmount);
+    require_gt!(amount, 0, EscrowError::InvalidAmount);
+
+    ctx.accounts.populate_escrow(seed, receive, ctx.bumps.escrow)?;
+    ctx.accounts.deposit_tokens(amount)?;
+
+    Ok(())
+}`,
+      },
+      { type: "subtitle", content: "Blue shift solutions - take.rs" },
+      {
+        type: "code",
+        code: `use anchor_lang::prelude::*;
+use crate::state::Escrow;
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface, TransferChecked, CloseAccount};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{transfer_checked, close_account};
+
+#[derive(Accounts)]
+pub struct Take<'info> {
+    #[account(mut)]
+    pub taker : Signer<'info>,
+
+    #[account(mut)] // cuzz maker gonna get the sol back when the escrow account is gonna be closed
+    pub maker : SystemAccount<'info>,
+
+    #[account(
+        mut,
+        close = maker,
+        has_one = maker,
+        has_one = mint_a,
+        has_one = mint_b,
+        seeds = [b"escrow", maker.key().as_ref(), escrow.seed.to_le_bytes().as_ref()],
+        bump = escrow.bump,
+    )]
+    pub escrow : Box<Account<'info, Escrow>>,
+
+    // missing the check that they should belong to the right token_program cuzz its already checked in above has_one
+    pub mint_a : Box<InterfaceAccount<'info, Mint>>,
+    pub mint_b : Box<InterfaceAccount<'info, Mint>>,
+
+    #[account(
+        mut,
+        associated_token::mint = mint_a,
+        associated_token::authority = escrow,
+        associated_token::token_program = token_program,
+    )]
+    pub vault : Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        init_if_needed,
+        payer = taker,
+        associated_token::mint = mint_a,
+        associated_token::authority = taker,
+        associated_token::token_program = token_program,
+    )]
+    pub taker_ata_a : Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        associated_token::mint = mint_b,
+        associated_token::authority = taker,
+        associated_token::token_program = token_program,
+    )]
+    pub taker_ata_b : Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+      init_if_needed,
+      payer = taker,
+      associated_token::mint = mint_b,
+      associated_token::authority = maker,
+      associated_token::token_program = token_program
+    )]
+    pub maker_ata_b : Box<InterfaceAccount<'info, TokenAccount>>,
+
+    pub associated_token_program : Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub system_program : Program<'info, System>,
+}
+
+impl<'info>Take<'info> {
+
+    fn transfer_to_maker(&mut self) -> Result<()>{
+
+        let cpi_context = CpiContext::new(
+            self.token_program.to_account_info(),
+            TransferChecked{
+                from : self.taker_ata_b.to_account_info(),
+                to : self.maker_ata_b.to_account_info(),
+                authority : self.taker.to_account_info(),
+                mint : self.mint_b.to_account_info(),
+            }
+        );
+
+        transfer_checked(cpi_context, self.escrow.receive, self.mint_b.decimals)?;
+        Ok(())
+    }
+
+    fn withdraw_and_close_vault(&mut self) -> Result<()> {
+
+        let signer_seeds: [&[&[u8]]; 1] = [&[
+            b"escrow",
+            self.maker.to_account_info().key.as_ref(),
+            &self.escrow.seed.to_le_bytes()[..],
+            &[self.escrow.bump],
+        ]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            TransferChecked{
+                from : self.vault.to_account_info(),
+                to : self.taker_ata_a.to_account_info(),
+                mint : self.mint_a.to_account_info(),
+                authority : self.escrow.to_account_info(),
+            },
+            &signer_seeds,
+        );
+
+        transfer_checked(cpi_context, self.vault.amount, self.mint_a.decimals)?;
+
+        let close_context = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            CloseAccount{
+                account : self.vault.to_account_info(),
+                authority : self.escrow.to_account_info(),
+                destination : self.maker.to_account_info(),
+            },
+            &signer_seeds
+        );
+
+        close_account(close_context)?;
+
+        Ok(())
+    }
+
+}
+
+pub fn handler(ctx: Context<Take>) -> Result<()> {
+    ctx.accounts.transfer_to_maker()?;
+    ctx.accounts.withdraw_and_close_vault()?;
+    Ok(())
+}`,
+      },
+      { type: "subtitle", content: "Blue shift solutions - refund.rs" },
+      {
+        type: "code",
+        code: `use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
+use crate::state::Escrow;
+use anchor_spl::token_interface::{Mint, TokenInterface, TokenAccount, TransferChecked, CloseAccount};
+use anchor_spl::token_interface::{transfer_checked, close_account};
+use crate::instructions::Take;
+
+#[derive(Accounts)]
+pub struct Refund<'info>{
+
+    #[account(mut)]
+    pub maker : Signer<'info>,
+
+    #[account(
+        mut,
+        close = maker,
+        has_one = maker,
+        has_one = mint_a,
+        seeds = [b"escrow", maker.key().as_ref(), escrow.seed.to_le_bytes().as_ref()],
+        bump = escrow.bump,
+    )]
+    pub escrow : Box<Account<'info, Escrow>>,
+
+    pub mint_a : Box<InterfaceAccount<'info, Mint>>,
+
+    #[account(
+        mut,
+        associated_token::mint = mint_a,
+        associated_token::authority = escrow,
+        associated_token::token_program = token_program,
+    )]
+    pub vault : Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        init_if_needed,
+        payer = maker,
+        associated_token::mint = mint_a,
+        associated_token::authority = maker,
+        associated_token::token_program = token_program
+    )]
+    pub maker_ata_a : Box<InterfaceAccount<'info, TokenAccount>>,
+
+    pub associated_token_program : Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub system_program : Program<'info, System>,
+}
+
+impl<'info>Refund<'info>{
+    fn refund_to_maker_and_close_vault(&mut self) -> Result<()> {
+
+        let signer_seeds: [&[&[u8]]; 1] = [&[
+            b"escrow",
+            self.maker.to_account_info().key.as_ref(),
+            &self.escrow.seed.to_le_bytes()[..],
+            &[self.escrow.bump],
+        ]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            TransferChecked{
+                from : self.vault.to_account_info(),
+                to: self.maker_ata_a.to_account_info(),
+                mint : self.mint_a.to_account_info(),
+                authority : self.escrow.to_account_info(),
+            },
+            &signer_seeds
+        );
+
+        transfer_checked(cpi_context, self.vault.amount, self.mint_a.decimals)?;
+
+        let close_context = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            CloseAccount{
+                account : self.vault.to_account_info(),
+                authority : self.escrow.to_account_info(),
+                destination : self.maker.to_account_info(),
+            },
+            &signer_seeds
+        );
+
+        close_account(close_context)?;
+
+        Ok(())
+    }
+}
+
+pub fn handler(ctx: Context<Refund>) -> Result<()> {
+    ctx.accounts.refund_to_maker_and_close_vault()?;
+    Ok(())
+}`,
+      },
     ],
   },
 
@@ -772,53 +1194,24 @@ let max_val = match a.iter().max() {
   },
 
   // =========================================================
-  // 15. ::from() (New)
-  // =========================================================
-  {
-    id: "from_trait",
-    title: "::from()",
-    summary: "Type conversions without loss.",
-    sections: [
-      { type: "subtitle", content: "Basics" },
-      {
-        type: "code",
-        code: `let a: i16 = 120;
-let b = i32::from(a); // i32 can be converted into i64 and u8 can be converted into u32 but Converting in the other direction however may result in information loss, so it cannot be done with ::from.
-
-pub fn zero_one(b: bool) -> i32 { // similarly a bool can be converted as well 
-    i32::from(b) // either 0 or 1 depending upon b true or false
-}
-
-Some(42) ==  Option::from(42) // this is also correct but no one really ever uses it !`,
-      },
-    ],
-  },
-
-  // =========================================================
-  // 16. UTILITY FUNCTIONS
+  // 15. UTILITY FUNCTIONS
   // =========================================================
   {
     id: "utility",
     title: "Utility Functions",
-    summary: "Math, formatting, and helpers.",
+    summary: "Math and helpers.",
     sections: [
-      { type: "subtitle", content: "Math & Strings" },
+      { type: "subtitle", content: "Math" },
       {
         type: "code",
         code: `f32::sqrt(a); // sqrt of a
-a.powi(b).  // a^b
-
-i32::from(a); // converting whaterve a is of type to i32 -- make sure no loss happens
-string_var.to_uppercase() // converts upper case
-string_var.to_lowercase() // converts to lower case
-only_borrowed_reference_value.to_owned() // only works in any type of "Borrowed" reference, now it makes you the owner of the referenced value and a copy so that now you can edit it previously it was owned by someone else and that is the reason you got & reference so now you have a copy and u are the owner 
-format!() // creates a new string eg : format!("jl-{}", symbol.to_uppercase()); -> \`jl-XYZ\` if xyz is symbol`,
+a.powi(b).  // a^b`,
       },
     ],
   },
 
   // =========================================================
-  // 17. HASHMAPS
+  // 16. HASHMAPS
   // =========================================================
   {
     id: "hashmaps",
@@ -878,7 +1271,7 @@ let ref_x = &x;
   },
 
   // =========================================================
-  // 18. TRAIT & IMPLEMENTATION
+  // 17. TRAIT & IMPLEMENTATION
   // =========================================================
   {
     id: "trait_impl",
@@ -906,7 +1299,7 @@ imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
   },
 
   // =========================================================
-  // 19. ITERATOR & RANGES
+  // 18. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -1019,7 +1412,7 @@ let my_range: Range<i32> = 0..10;`,
   },
 
   // =========================================================
-  // 20. OWNERSHIP & CONSUMPTION
+  // 19. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
