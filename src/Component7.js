@@ -59,11 +59,34 @@ const Component7 = () => {
     }
   };
 
-  const handleCalculatePda = () => {
+  const handleCalculatePda = async () => {
     setPdaResult({ pda: null, bump: null, error: null });
     try {
       if (!programId) throw new Error("Program ID is required");
       const pubKeyProgramId = new PublicKey(programId);
+
+      // --- NEW LOGIC FOR IDL ---
+      if (seeds.length === 1 && seeds[0].value === "anchor:idl") {
+        // 1. Find the "Base" (A PDA with no seeds)
+        const [base] = PublicKey.findProgramAddressSync([], pubKeyProgramId);
+
+        // 2. Derive using createWithSeed (This is what Anchor 0.32.1 still uses)
+        const idlAddress = await PublicKey.createWithSeed(
+          base,
+          "anchor:idl",
+          pubKeyProgramId
+        );
+
+        setPdaResult({
+          pda: idlAddress.toBase58(),
+          bump: "N/A (Legacy)",
+          error: null,
+        });
+        return;
+      }
+      // --- END IDL LOGIC ---
+
+      // Your existing standard PDA logic
       const processedSeeds = seeds.map(processSeed);
       const [pda, bump] = PublicKey.findProgramAddressSync(
         processedSeeds,
