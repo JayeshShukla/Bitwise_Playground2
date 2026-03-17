@@ -100,6 +100,11 @@ v.remove(i) // removes the vector's index but remember that if the v is being it
 let ref_x = &x;
 *ref_x // ❌ will revert not possible to dereference a collection like an simple var`,
       },
+      { type: "subtitle", content: "Filtering Tuples" },
+      {
+        type: "code",
+        code: `v.iter().filter(|&(x,y)| {condition}).copied().collect() == v.into_iter().filter(|(x,y)| {condition}).collect()  // if v is a Vector of Tuples`,
+      },
       { type: "subtitle", content: "Comparisons" },
       {
         type: "code",
@@ -185,6 +190,22 @@ s.to_vec // to_vec is heavily used for slice, string, array to convert into vect
  let v = vec![1,2,3];
 &v[..] // this is how a vec is now converted to a slice with full elements of vec`,
       },
+      { type: "subtitle", content: "Slices & Tuples" },
+      {
+        type: "code",
+        code: ` let a = [(1, 2), (3, 4), (5, 6)]; // array but when passed as ref : &a becomes slice 'a: &[(i32, i32)]'
+&any_kind_of_slice.iter() == &any_kind_of_slice.into_iter() // both give reference to : &(x,y) & dont take Ownership
+
+ a.iter().map(|&(x,y)| x+y) // a is a slice of tuple so we can get both the values x & y using : &(x,y) of a tuple
+
+// How to discard any tuple information with map
+let a = [(1, 2), (3, 4)]; // note below a is not a slice but an array of tuple, slice is only when & is passed
+let v = a.into_iter().map(|(a, _)| a).collect(); // you cannot make a tuple out of just 1 so maybe a vec can be created 
+
+// .enumerate() takes an iterator of T and turns it into an iterator of (usize, T)
+let sl: &[i32] = is a slice of i32
+sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reason &y will come`,
+      },
       { type: "subtitle", content: "Conversion Issues" },
       {
         type: "code",
@@ -216,6 +237,39 @@ let str1 = "BOB".to_string() // now its of type String
     let str1 = "hello";
     let str2 = "hello";
     println!("str1 == str2: {}", str1 == str2); // we can compare using == `,
+      },
+      { type: "subtitle", content: "Vec to String, Bytes, Slicing & chars()" },
+      {
+        type: "code",
+        code: `let v_char = vec!['R', 'a', 'r', 'e', 'C', 'o', 'd', 'e']; // where return type is -> String
+    v_char.iter().collect() // this will work because creating String from a vec of chars, is epecial as string is dereferenced by compiler internally & does not require a copied()
+
+let s : String = String::from("hail");
+s.len() // The length of a String is the number of bytes that it holds.
+s.len() == s.bytes().count() // len is nothing but how much bytes does a string takes
+
+  let slice_1 = &s1[..1]; // getting &str to String, remember they are not equal
+
+   let s1 = "😂a";
+    let slice_1 = &s1[..4]; // in case of string the index is not index but the bytes you wanna take, so since ur slicing 4 bytes, you will whole 😂, if done [..1] -- WILL REVERT ❗
+
+let s = String::from("Hello, RareCode!"); // here String is non-copy types but &str is 
+  for e in s.chars() // for loop e is each char, DOES NOT CONSUME THE WHOLE STRING, here .chars gives us iterator to char. Works with both String and &str (slice)
+
+let msg = "hello there"; == let msg: &str = "hello there"; // WIERD ik that when you write "abc" its not String but a &str`,
+      },
+      { type: "subtitle", content: "into() & from()" },
+      {
+        type: "code",
+        code: `// Wherever ::from works, into() also works. for anything let it be Vec or String
+    let a = [1, 2, 3];
+    let slice_1 = &a[..];
+    let _v: Vec<i32> = slice_1.into();
+
+    let slice_2 = "hello RareCode";
+    let _s: String = slice_2.into();
+    
+    let _s2: String = "hello RareCode".into();`,
       },
     ],
   },
@@ -1170,7 +1224,7 @@ x.clone(); // clone works but only if typle does not have any dynamic collection
   },
 
   // =========================================================
-  // 14. OPTIONS (Renamed)
+  // 14. OPTIONS
   // =========================================================
   {
     id: "options_inbuilt",
@@ -1198,11 +1252,11 @@ let max_val = match a.iter().max() {
   },
 
   // =========================================================
-  // 15. ::from()
+  // 15. ::from() & .into()
   // =========================================================
   {
     id: "from_trait",
-    title: "::from()",
+    title: "::from() & .into()",
     summary: "Type conversions without loss.",
     sections: [
       { type: "subtitle", content: "Basics" },
@@ -1231,7 +1285,19 @@ u16::from(i) // a type can be converted to other using from
 
     let a = [vec![1], vec![2], vec![3]];
     let slice = &a[..]; // or below can be used to_vec as well
-    let v = Vec::from(slice); // this will also work cuzz a is array of non copy types but slice makes it reference so move does not happen on from`,
+    let v = Vec::from(slice); // this will also work cuzz a is array of non copy types but slice makes it reference so move does not happen on from
+
+    let b = [vec![1], vec![2], vec![3]];
+    let w: Vec<Vec<i32>> = b.into(); // same as ::from() does its just this time you need to mention explicitly what you want
+
+// REMEMBER ❗: In Rust, both ::from and .into() consume, but look below :
+
+    let s : HashSet<i32> = [1,2,3].into(); // this should have moved or taken ownership of [1,2,3], but since all iterms in it are of non -copy so it is implicitly convered to the reference implicity
+
+// but below will revert : 
+    let b = [vec![1], vec![2], vec![3]];
+    let w: Vec<Vec<i32>> = b.into(); // the values inside it are of non copy type so you need to do below :
+    let w: Vec<Vec<i32>> = b.clone().into(); // ✅`,
       },
     ],
   },
@@ -1301,6 +1367,14 @@ hm.values(); // returns ITERATOR over REFERENCE to the values
 pub fn prod_values(m: &HashMap<i32, i32>) -> i32 { // 1 line soln to get product of values of a map
     m.values().copied().product()
 }`,
+      },
+      { type: "subtitle", content: "Map & Tuples" },
+      {
+        type: "code",
+        code: `map.iter().map(|(&x,&y)| x+y).sum() // When you call .iter() on a HashMap, it yields a tuple of references: (&K, &V).
+
+    let a = [(1, (2, 3)), (4, (5, 6))];
+    let result = a.iter().map(|&(x, (y, z))| x + y + z).collect::<Vec<i32>>(); // Nested Tuple`,
       },
       { type: "subtitle", content: "Dereferencing Issues" },
       {
@@ -1420,11 +1494,52 @@ fn main() {
  let grid = [[0, 0, 0], [1, 1, 1], [2, 2, 2]];
     grid.into_iter().map(|row| row.into_iter().sum::<i32>() ).sum()  // gives the sum of grid in single go`,
       },
+      { type: "subtitle", content: "Tuples & Filtering" },
+      {
+        type: "code",
+        code: `a.iter().map(|&(x,y)| x+y) // a is a slice of tuple so we can get both the values x & y using : &(x,y) of a tuple
+
+// How to discard any tuple information with map
+let a = [(1, 2), (3, 4)]; // note below a is not a slice but an array of tuple, slice is only when & is passed
+let v = a.into_iter().map(|(a, _)| a).collect(); // you cannot make a tuple out of just 1 so maybe a vec can be created 
+
+v.iter().filter(|&(x,y)| {condition}).copied().collect() == v.into_iter().filter(|(x,y)| {condition}).collect()  // if v is a Vector of Tuples
+
+// .enumerate() takes an iterator of T and turns it into an iterator of (usize, T)
+let sl: &[i32] = is a slice of i32
+sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reason &y will come
+
+    let a = [(1, (2, 3)), (4, (5, 6))];
+    let result = a.iter().map(|&(x, (y, z))| x + y + z).collect::<Vec<i32>>(); // Nested Tuple`,
+      },
+      { type: "subtitle", content: "Map and filter on a HashMap" },
+      {
+        type: "code",
+        code: `map.iter().map(|(&x,&y)| x+y).sum() // When you call .iter() on a HashMap, it yields a tuple of references: (&K, &V).`,
+      },
     ],
   },
 
   // =========================================================
-  // 21. ITERATOR & RANGES
+  // 21. .ENUMERATE() (New)
+  // =========================================================
+  {
+    id: "enumerate",
+    title: ".enumerate()",
+    summary: "Iterator indexing.",
+    sections: [
+      { type: "subtitle", content: "Enumerate Basics" },
+      {
+        type: "code",
+        code: `// .enumerate() takes an iterator of T and turns it into an iterator of (usize, T)
+let sl: &[i32] = is a slice of i32
+sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reason &y will come`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 22. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -1439,6 +1554,21 @@ fn main() {
 
 <new collection type> = any_collection.into_iter().collect() // iterator.collect() makes any collection of other mentioned collection 
 eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically from any collection to any other`,
+      },
+      { type: "subtitle", content: "Slices" },
+      {
+        type: "code",
+        code: `let a = [(1, 2), (3, 4), (5, 6)]; // array but when passed as ref : &a becomes slice 'a: &[(i32, i32)]'
+&any_kind_of_slice.iter() == &any_kind_of_slice.into_iter() // both give reference to : &(x,y) & dont take Ownership
+
+// How to discard any tuple information with map
+let a = [(1, 2), (3, 4)]; // note below a is not a slice but an array of tuple, slice is only when & is passed
+let v = a.into_iter().map(|(a, _)| a).collect(); // you cannot make a tuple out of just 1 so maybe a vec can be created 
+
+v.iter().filter(|&(x,y)| {condition}).copied().collect() == v.into_iter().filter(|(x,y)| {condition}).collect()  // if v is a Vector of Tuples
+
+    let a = [(1, (2, 3)), (4, (5, 6))];
+    let result = a.iter().map(|&(x, (y, z))| x + y + z).collect::<Vec<i32>>(); // Nested Tuple`,
       },
       { type: "subtitle", content: "Filter" },
       {
@@ -1554,7 +1684,7 @@ let my_range: Range<i32> = 0..10;`,
   },
 
   // =========================================================
-  // 22. OWNERSHIP & CONSUMPTION
+  // 23. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -1677,6 +1807,8 @@ const Component6 = () => {
                     ? "⚓"
                     : topic.title.toLowerCase().includes("turbofish")
                     ? "🐟"
+                    : topic.title.toLowerCase().includes("enumerate")
+                    ? "🧮"
                     : topic.title.toLowerCase().includes("map") ||
                       topic.title.toLowerCase().includes("closure")
                     ? "🗺️"
