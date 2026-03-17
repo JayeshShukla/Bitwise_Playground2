@@ -255,6 +255,7 @@ s.len() == s.bytes().count() // len is nothing but how much bytes does a string 
 
 let s = String::from("Hello, RareCode!"); // here String is non-copy types but &str is 
   for e in s.chars() // for loop e is each char, DOES NOT CONSUME THE WHOLE STRING, here .chars gives us iterator to char. Works with both String and &str (slice)
+    s.chars().enumerate().map(| (i, v) | if i == index { '3' } else { v }).collect() // s is string
 
 let msg = "hello there"; == let msg: &str = "hello there"; // WIERD ik that when you write "abc" its not String but a &str`,
       },
@@ -1224,7 +1225,7 @@ x.clone(); // clone works but only if typle does not have any dynamic collection
   },
 
   // =========================================================
-  // 14. OPTIONS
+  // 14. OPTIONS (Renamed)
   // =========================================================
   {
     id: "options_inbuilt",
@@ -1494,7 +1495,7 @@ fn main() {
  let grid = [[0, 0, 0], [1, 1, 1], [2, 2, 2]];
     grid.into_iter().map(|row| row.into_iter().sum::<i32>() ).sum()  // gives the sum of grid in single go`,
       },
-      { type: "subtitle", content: "Tuples & Filtering" },
+      { type: "subtitle", content: "Tuple Mapping & Discarding" },
       {
         type: "code",
         code: `a.iter().map(|&(x,y)| x+y) // a is a slice of tuple so we can get both the values x & y using : &(x,y) of a tuple
@@ -1521,7 +1522,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 21. .ENUMERATE() (New)
+  // 21. .ENUMERATE()
   // =========================================================
   {
     id: "enumerate",
@@ -1539,7 +1540,38 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 22. ITERATOR & RANGES
+  // 22. FILTER
+  // =========================================================
+  {
+    id: "filter_trait",
+    title: "Filter",
+    summary: "Filtering elements in collections.",
+    sections: [
+      {
+        type: "note",
+        content:
+          "In Rust, the .filter() method passes a reference to the element into the closure.",
+      },
+      { type: "subtitle", content: "String Filtering Example" },
+      {
+        type: "code",
+        code: `// below code makes :
+// let s : String = "hello, world!".into();
+// to "hllo, world!", given to remove the index 1 to remove
+
+pub fn remove_at(s: String, index: usize) -> String {
+    s.chars()
+        .enumerate()
+        .filter(|(i, _c)| *i != index) // keep everything except the target index
+        .map(|(_, c)| c)              // discard the index, keep the char
+        .collect()                    // now it's an iterator of chars
+}`,
+      },
+    ],
+  },
+
+  // =========================================================
+  // 23. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -1684,7 +1716,7 @@ let my_range: Range<i32> = 0..10;`,
   },
 
   // =========================================================
-  // 23. OWNERSHIP & CONSUMPTION
+  // 24. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -1809,6 +1841,8 @@ const Component6 = () => {
                     ? "🐟"
                     : topic.title.toLowerCase().includes("enumerate")
                     ? "🧮"
+                    : topic.title.toLowerCase().includes("filter")
+                    ? "🔎"
                     : topic.title.toLowerCase().includes("map") ||
                       topic.title.toLowerCase().includes("closure")
                     ? "🗺️"
