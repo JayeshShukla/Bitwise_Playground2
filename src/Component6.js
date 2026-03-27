@@ -623,7 +623,9 @@ mint : // expects AcccountInfo
       { type: "subtitle", content: "Derive Macro" },
       {
         type: "code",
-        code: `#[derive(AnchorSerialize, AnchorDeserialize, Clone)] // any cutom struct 1st time entering in solana world through the frontend world, that is passed as arguments`,
+        code: `#[derive(AnchorSerialize, AnchorDeserialize, Clone)] // any cutom struct 1st time entering in solana world through the frontend world, that is passed as arguments
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default, Copy, InitSpace)] // sub structs state needs this above them`,
       },
       { type: "subtitle", content: "What Anchor Imports" },
       {
