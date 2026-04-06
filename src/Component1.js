@@ -29,7 +29,6 @@ import {
 } from "@solana/spl-token";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-// 🚨 THE FIX: Import directly from the individual packages, bypassing Ledger!
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 
 // EVM Imports
