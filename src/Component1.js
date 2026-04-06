@@ -1,127 +1,288 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { Buffer } from "buffer";
+import "./styles.css";
 
-const formatString = (str) => {
-  let cleanedStr = str;
-  if (cleanedStr.startsWith("0x")) {
-    cleanedStr = cleanedStr.slice(2);
-  }
+// Solana Imports
+import {
+  ConnectionProvider,
+  WalletProvider,
+  useConnection,
+  useWallet,
+} from "@solana/wallet-adapter-react";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import {
+  WalletModalProvider,
+  WalletMultiButton,
+} from "@solana/wallet-adapter-react-ui";
+import {
+  clusterApiUrl,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
+import {
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+} from "@solana/spl-token";
+import "@solana/wallet-adapter-react-ui/styles.css";
 
-  const bytes = [];
-  for (let i = 0; i < cleanedStr.length; i += 2) {
-    bytes.push(cleanedStr.slice(i, i + 2));
-  }
+// 🚨 THE FIX: Import directly from the individual packages, bypassing Ledger!
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 
-  const lines = [];
-  for (let i = 0; i < bytes.length; i += 32) {
-    lines.push(bytes.slice(i, i + 32));
-  }
+// EVM Imports
+import { ethers } from "ethers";
 
-  return { lines, byteCount: bytes.length };
-};
+// CRITICAL POLYFILL: This prevents Solana web3 from crashing in CodeSandbox
+window.Buffer = window.Buffer || Buffer;
 
-const Component1 = () => {
-  const [inputString, setInputString] = useState("");
-  const [localBytes, setLocalBytes] = useState([]);
-  const [editIndex, setEditIndex] = useState(null);
+const UniversalSender = () => {
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
 
-  useEffect(() => {
-    const { lines } = formatString(inputString);
-    const bytes = lines.flat();
-    setLocalBytes(bytes);
-  }, [inputString]);
+  const [chain, setChain] = useState("solana-devnet");
+  const [recipient, setRecipient] = useState("");
+  const [tokenAddress, setTokenAddress] = useState("");
+  const [amount, setAmount] = useState("");
+  const [status, setStatus] = useState("");
 
-  const handleChange = (event) => {
-    // Remove all white spaces from the input string
-    const cleanedValue = event.target.value.replace(/\s+/g, "");
-    setInputString(cleanedValue);
-  };
+  // --- SOLANA TRANSFER LOGIC ---
+  const handleSolanaTransfer = async () => {
+    if (!publicKey) throw new Error("Please connect your Solana wallet.");
+    const recipientPubKey = new PublicKey(recipient);
+    let transaction = new Transaction();
 
-  const handleByteChange = (index, newValue) => {
-    const updatedBytes = [...localBytes];
-    updatedBytes[index] = newValue;
+    if (tokenAddress) {
+      const mintPubKey = new PublicKey(tokenAddress);
+      const fromTokenAccount = await getAssociatedTokenAddress(
+        mintPubKey,
+        publicKey
+      );
+      const toTokenAccount = await getAssociatedTokenAddress(
+        mintPubKey,
+        recipientPubKey
+      );
 
-    // Only update the main string if the byte is exactly two digits
-    if (newValue.length === 2) {
-      const newString = updatedBytes.join("");
-      setInputString(`0x${newString}`);
+      try {
+        await getAccount(connection, toTokenAccount);
+      } catch (e) {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey,
+            toTokenAccount,
+            recipientPubKey,
+            mintPubKey
+          )
+        );
+      }
+
+      const tokenAmount = parseFloat(amount) * Math.pow(10, 6);
+
+      transaction.add(
+        createTransferInstruction(
+          fromTokenAccount,
+          toTokenAccount,
+          publicKey,
+          tokenAmount
+        )
+      );
+    } else {
+      const lamports = parseFloat(amount) * LAMPORTS_PER_SOL;
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: recipientPubKey,
+          lamports: lamports,
+        })
+      );
     }
 
-    setLocalBytes(updatedBytes);
-    setEditIndex(index);
+    const signature = await sendTransaction(transaction, connection);
+    const latestBlockhash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({
+      signature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    });
+    return signature;
   };
 
-  const { lines, byteCount } = formatString(inputString);
+  // --- EVM TRANSFER LOGIC ---
+  const handleEVMTransfer = async () => {
+    if (!window.ethereum) throw new Error("Please install MetaMask.");
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+
+    const network = await provider.getNetwork();
+    if (network.chainId !== 11155111n) {
+      setStatus("Switching MetaMask to Sepolia Testnet...");
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0xaa36a7" }],
+        });
+      } catch (switchError) {
+        throw new Error(
+          "Failed to switch to Sepolia Devnet. Please switch manually in MetaMask."
+        );
+      }
+    }
+
+    if (tokenAddress) {
+      const erc20Abi = [
+        "function transfer(address to, uint256 amount) returns (bool)",
+      ];
+      const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+      const parsedAmount = ethers.parseUnits(amount, 18);
+      const tx = await tokenContract.transfer(recipient, parsedAmount);
+      await tx.wait();
+      return tx.hash;
+    } else {
+      const tx = await signer.sendTransaction({
+        to: recipient,
+        value: ethers.parseEther(amount),
+      });
+      await tx.wait();
+      return tx.hash;
+    }
+  };
+
+  const handleTransfer = async (e) => {
+    e.preventDefault();
+    setStatus("Initiating transfer...");
+    try {
+      let txHash = "";
+      if (chain === "solana-devnet") {
+        txHash = await handleSolanaTransfer();
+      } else if (chain === "evm-sepolia") {
+        txHash = await handleEVMTransfer();
+      }
+      setStatus(`Success! Transaction Hash: ${txHash}`);
+    } catch (error) {
+      console.error(error);
+      setStatus(`Failed: ${error.message}`);
+    }
+  };
 
   return (
-    <div style={{ fontFamily: "monospace" }}>
-      <input
-        type="text"
-        placeholder="Paste the bytecode & to Edit it, double click the byte you wanna edit below"
-        value={inputString}
-        onChange={handleChange}
-        style={{ width: "100%", marginBottom: "10px", fontFamily: "monospace" }}
-      />
-      <div>Total Bytes: {byteCount}</div>
-      <div
+    <div className="App" style={{ maxWidth: "500px", margin: "50px auto" }}>
+      <h2>Universal Token Sender</h2>
+
+      <div style={{ marginBottom: "20px", textAlign: "left" }}>
+        <label>
+          <strong>Select Chain:</strong>
+        </label>
+        <br />
+        <select
+          value={chain}
+          onChange={(e) => setChain(e.target.value)}
+          style={{ padding: "10px", width: "100%", marginTop: "5px" }}
+        >
+          <option value="solana-devnet">Solana (Devnet)</option>
+          <option value="evm-sepolia">Ethereum (Sepolia Devnet)</option>
+        </select>
+      </div>
+
+      {chain === "solana-devnet" && (
+        <div style={{ marginBottom: "20px" }}>
+          <WalletMultiButton />
+        </div>
+      )}
+
+      <form
+        onSubmit={handleTransfer}
         style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(32, 1fr)`,
-          gap: "1px",
-          alignItems: "center",
-          marginBottom: "10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "15px",
+          textAlign: "left",
         }}
       >
-        {Array.from({ length: 32 }).map((_, index) => (
-          <div
-            key={index}
-            style={{
-              textAlign: "center",
-              fontWeight: "bold",
-            }}
-          >
-            {index}
-          </div>
-        ))}
-      </div>
-      {lines.map((line, lineIndex) => (
-        <div
-          key={lineIndex}
+        <div>
+          <label>Recipient Address</label>
+          <input
+            type="text"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            required
+            style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div>
+          <label>Token Contract / Mint (Optional)</label>
+          <input
+            type="text"
+            placeholder="Leave blank for Native SOL / ETH"
+            value={tokenAddress}
+            onChange={(e) => setTokenAddress(e.target.value)}
+            style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div>
+          <label>Amount</label>
+          <input
+            type="number"
+            step="any"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+            style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <button
+          type="submit"
           style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(32, 1fr)`,
-            gap: "5px",
-            marginBottom: "5px",
+            padding: "15px",
+            backgroundColor: "#000",
+            color: "#fff",
+            cursor: "pointer",
+            border: "none",
+            borderRadius: "5px",
+            fontWeight: "bold",
           }}
         >
-          {line.map((byte, byteIndex) => (
-            <input
-              key={byteIndex}
-              type="text"
-              value={localBytes[lineIndex * 32 + byteIndex] || ""}
-              onChange={(e) =>
-                handleByteChange(lineIndex * 32 + byteIndex, e.target.value)
-              }
-              style={{
-                width: "50px",
-                textAlign: "center",
-                color:
-                  parseInt(
-                    localBytes[lineIndex * 32 + byteIndex] || "00",
-                    16
-                  ) !== 0
-                    ? "darkgreen"
-                    : "rgba(0, 0, 0, 0.5)",
-                border: "none",
-                outline: "none",
-                userSelect: "text", // Ensure text can be selected
-                cursor: "text", // Show text cursor to indicate selectability
-              }}
-            />
-          ))}
+          Send Tokens
+        </button>
+      </form>
+
+      {status && (
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "15px",
+            backgroundColor: "#f0f0f0",
+            borderRadius: "5px",
+            wordWrap: "break-word",
+          }}
+        >
+          {status}
         </div>
-      ))}
+      )}
     </div>
   );
 };
 
-export default Component1;
+// Renamed to Component1 per your request
+export default function Component1() {
+  const network = WalletAdapterNetwork.Devnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+
+  const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
+
+  return (
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <UniversalSender />
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}

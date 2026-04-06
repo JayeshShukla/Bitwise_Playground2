@@ -9,7 +9,7 @@ const Navbar = ({ setActiveComponent }) => {
         className="navbar-button"
         onClick={() => setActiveComponent("component1")}
       >
-        Play with Bytes32
+        Faucet
       </button>
       <button
         className="navbar-button"
