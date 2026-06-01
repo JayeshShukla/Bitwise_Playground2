@@ -75,6 +75,8 @@ let my_vec = vec![];        // dynamic vector
 let v3 = Vec::from([1, 2, 3]); // create a vec from something(here an array due to [])
 let v = [].to_vec(); // converts array of [whatever..] in a vector
 
+let ticket_ids : Vec<[u8; 32]> = vec![[0u8; 32];  3]; // it creates a vector of 3 len and each one is an array of 32, u8 values
+
 my_vec.len(); // get length
 my_vec.capacity(); // get capacity
 my_vec.getAddress(); // not sure if it works need to check 
@@ -111,6 +113,11 @@ let ref_x = &x;
         code: `    let v1 = vec![1, 2, 3];
     let v3 = vec![3, 2, 1];
     println!("v1 == v3: {}", v1 == v3);  // this will return false cuzz order does matter for vec, but remember if it would have been sets or hashmaps -- order does not matter for them so would have been true`
+      },
+      { type: "subtitle", content: "Filtering and Casting" },
+      {
+        type: "code",
+        code: `    slice.iter().filter(|&&x| u8::try_from(x).is_ok()).map(|&x| x as u8).collect() // convertes a &[u16] to Vec<u8>  after checking will it underflow or overflow `
       }
     ]
   },
@@ -259,6 +266,12 @@ let s = String::from("Hello, RareCode!"); // here String is non-copy types but &
 
 let msg = "hello there"; == let msg: &str = "hello there"; // WIERD ik that when you write "abc" its not String but a &str`
       },
+      { type: "subtitle", content: "Extracting from &[&str]" },
+      {
+        type: "code",
+        code: `// how to get String from arr = &[&str] ? : 
+arr[index].to_string()`
+      },
       { type: "subtitle", content: "into() & from()" },
       {
         type: "code",
@@ -279,6 +292,16 @@ let msg = "hello there"; == let msg: &str = "hello there"; // WIERD ik that when
 s.push_str(&another_string_var.  or "Hellow") // both work if antoher_string is of type : String we pass reference to it
 
   s.push_str(&s.chars().rev().collect::<String>()); // will convert "123" to "123321"`
+      },
+      { type: "subtitle", content: "Parsing Strings" },
+      {
+        type: "code",
+        code: `    let num = "3"; // here 3 is of type &str and can be converted to i8 as below 
+    let result = num.parse::<i8>();
+
+pub fn parse_or_remove(v: &[&str]) -> Vec<i16> {
+    v.iter().filter(|&&s| s.parse::<i16>().is_ok()).map(|&s| s.parse::<i16>().unwrap()).collect()
+} // will convert   let v = ["1", "2", "h", "3"];  to Vec<i16>  exluding the value which overflows or underflows the i16 bounds `
       }
     ]
   },
@@ -323,6 +346,203 @@ distance(point); // if point is a struct instance and passed in a function which
         code: `// EnumName.enum is wrong way isntead EnumName::enum is write eg :
  Color::White // this is how you access a attribute of Color enum 
 // if an enum is returned from a \`pub\` fn, the enum has to be also public`
+      },
+      { type: "subtitle", content: "Enum Examples & Mutability" },
+      {
+        type: "code",
+        code: `// how to convert vec[Color::White, Color::Black] that is : Vec<Color> to Vec<String> 
+
+pub enum Color {
+    White,
+    Black,
+}
+
+fn main() {
+    let v: Vec<Color> = vec![Color::White, Color::Black];
+    let result = translate_colors(v);
+    println!("{:?}", result);
+}
+
+pub fn translate_colors(colors: Vec<Color>) -> Vec<String> {
+    colors.iter().map(|x| {
+        match *x {
+            Color::White => String::from("white"),
+            Color::Black => String::from("black")
+        }
+    }).collect()
+}
+
+
+// next converts black to white and white to black but most importantly it does this : by mutating the aready incoming variable
+
+fn main() {
+    let mut color = Color::White;
+    flip_color(&mut color);
+    match color {
+        Color::Black => println!("black"),
+        Color::White => println!("white"),
+    }
+}
+
+pub fn flip_color(color: &mut Color) {
+    match color {
+        Color::Black => *color = Color::White,
+        Color::White => *color = Color::Black
+    };
+}`
+      },
+      { type: "subtitle", content: "Nested Enums & Mutability" },
+      {
+        type: "code",
+        code: `// Enum inside Enum, target switch if black to white or vice versa and in next function make it empty whatever color is 
+
+#[derive(Debug, Copy, Clone)]
+pub enum Piece {
+    Black,
+    White,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Square {
+    Occupied(Piece),
+    Empty,
+}
+
+fn main() {
+    let mut square = Square::Occupied(Piece::Black);
+    println!("{:?}", square);
+    
+    flip_color(&mut square);
+    println!("{:?}", square);
+    
+    make_empty(&mut square);
+    println!("{:?}", square);
+}
+
+pub fn flip_color(square: &mut Square) {
+    match square {
+        Square::Occupied(Piece::Black) => *square = Square::Occupied(Piece::White),
+        Square::Occupied(Piece::White) =>
+        *square = Square::Occupied(Piece::Black),
+        Square::Empty => {}, // do nothing
+    }
+}
+
+pub fn make_empty(square: &mut Square) {
+    *square = Square::Empty;
+}`
+      },
+      { type: "subtitle", content: "Enums with Data Payloads" },
+      {
+        type: "code",
+        code: `// more eg to learn :
+
+#[derive(Debug, Clone, Copy)]
+pub enum DogType {
+    Beagle,
+    Poodle
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CatType {
+    Persian,
+    Siamese
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Pet {
+    Dog(DogType),
+    Cat(CatType)
+}
+
+fn main() {
+    let pet_1 = Pet::Dog(DogType::Beagle);
+    let pet_2 = Pet::Cat(CatType::Siamese);
+    let pet_3 = Pet::Dog(DogType::Poodle);
+    let pet_4 = Pet::Cat(CatType::Persian);
+    
+    for pet in [pet_1, pet_2, pet_3, pet_4] {
+        println!("{:?} {:?} {:?}", pet, sound(pet), color(pet));
+    }
+}
+
+pub fn sound(pet: Pet) -> String {
+    match pet {
+        Pet::Dog(_) => String::from("woof"), // <@ will give error if you just write Pet::Dog, i have tried 
+        Pet::Cat(_) => String::from("meow")
+    }
+}
+
+pub fn color(pet: Pet) -> String {
+    match pet {
+        Pet::Dog(DogType::Beagle) => String::from("brown"),
+        Pet::Dog(DogType::Poodle) => String::from("white"),
+        Pet::Cat(CatType::Persian) => String::from("orange"),
+        Pet::Cat(CatType::Siamese) => String::from("gray")
+    }
+}`
+      },
+      { type: "subtitle", content: "Custom Result Enum" },
+      {
+        type: "code",
+        code: `// more eg :
+
+#[derive(Debug)]
+pub enum MyResult {
+    Ok(i8),
+    Err(DivisionError)
+}
+
+#[derive(Debug)]
+pub enum DivisionError {
+    DivideByZero,
+    Overflow,
+}
+
+pub fn my_divide(numerator: i8, denominator: i8) -> MyResult {
+    match (denominator, numerator) {
+        (0, _) => MyResult::Err(DivisionError::DivideByZero),
+        (-1, i8::MIN) => MyResult::Err(DivisionError::Overflow),
+        (_,_) => MyResult::Ok(numerator/denominator)
+    }
+}`
+      },
+      { type: "subtitle", content: "Parsing Strings to Enums" },
+      {
+        type: "code",
+        code: `// converting Vec<string> to Vec<Option<Enum>>> or conversion from string to num
+#[derive(Debug)]
+pub enum Parity {
+    Even,
+    Odd,
+}
+
+fn main() {
+    let nums = Vec::<String>::from([
+        "12".into(),
+        "0".into(),
+        "5".into(),
+        "muffins".into(),
+        "7".into(),
+    ]);
+    let result = parity(&nums);
+    println!("{:?}", result); // [Some(Even), Some(Even), Some(Odd), None, Some(Odd)]
+}
+
+pub fn parity(v: &[String]) -> Vec<Option<Parity>> {
+    v.into_iter().map(|x|{
+        let res_num = x.parse::<u32>();
+        match res_num {
+            Err(_e) => None,
+            Ok(value) => {
+                match value%2 {
+                    0 => Some(Parity::Even),
+                    _ => Some(Parity::Odd)
+                }
+            }
+        }
+    }).collect()
+}`
       },
       { type: "subtitle", content: "Issues & Macros Fixes" },
       {
@@ -602,11 +822,6 @@ use anchor_spl::{
 
     // ! INFO: Raw access to the new Token-2022 Crate.
     // -> Required for advanced features not fully supported by Anchor's high-level types.
-    token_2022::spl_token_2022,
-
-    // ! AUDIT FLAG: Manual Extension Handling (High Complexity)
-    // -> The code below implies the protocol manually decodes Token-2022 features (like Transfer Fees).
-    // -> RISK: Manual byte parsing is error-prone. Verify they check \`ExtensionType\` correctly.
     token_interface::spl_token_2022::extension::{
         BaseStateWithExtensions, // Helper to read standard data (balance, owner) from a complex account.
         ExtensionType,           // The specific "Feature Flag" (e.g., is this a TransferFeeConfig?).
@@ -1252,7 +1467,30 @@ let max_val = match a.iter().max() {
   },
 
   // =========================================================
-  // 15. ::from() & .into()
+  // 15. RESULT<>
+  // =========================================================
+  {
+    id: "result_enum",
+    title: "Result<>",
+    summary: "Handling Ok() and Err().",
+    sections: [
+      { type: "subtitle", content: "Result Basics" },
+      {
+        type: "code",
+        code: `// just like Option gives you Some or None
+// Result gives you : Ok(value) or Err(errorType) // Option just gives you none, but Result can give you multiple err reasons
+
+.unwrap() // just like option, it will give you value but if Err it will fail so need to check using below
+
+.is_ok() // just like is_some() checks if error did not occur
+
+  println!("{}", result.err().unwrap()); // if error ocuured err().unwrap() gives you different error string printed`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 16. ::from() & .into()
   // =========================================================
   {
     id: "from_trait",
@@ -1303,7 +1541,7 @@ u16::from(i) // a type can be converted to other using from
   },
 
   // =========================================================
-  // 16. UTILITY FUNCTIONS
+  // 17. UTILITY FUNCTIONS
   // =========================================================
   {
     id: "utility",
@@ -1326,7 +1564,7 @@ format!() // creates a new string eg : format!("jl-{}", symbol.to_uppercase()); 
   },
 
   // =========================================================
-  // 17. HASHMAPS
+  // 18. HASHMAPS
   // =========================================================
   {
     id: "hashmaps",
@@ -1391,7 +1629,7 @@ let ref_x = &x;
   },
 
   // =========================================================
-  // 18. TRAIT & IMPLEMENTATION
+  // 19. TRAIT & IMPLEMENTATION
   // =========================================================
   {
     id: "trait_impl",
@@ -1417,7 +1655,7 @@ imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
   },
 
   // =========================================================
-  // 19. TURBOFISH
+  // 20. TURBOFISH
   // =========================================================
   {
     id: "turbofish",
@@ -1437,7 +1675,7 @@ let set = v.into_iter().collect::<HashSet<i32>>(); // look above how turbofish h
   },
 
   // =========================================================
-  // 20. RUST MAP & CLOSURE
+  // 21. RUST MAP & CLOSURE
   // =========================================================
   {
     id: "map_closure",
@@ -1515,7 +1753,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 21. .ENUMERATE()
+  // 22. .ENUMERATE()
   // =========================================================
   {
     id: "enumerate",
@@ -1533,7 +1771,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 22. FILTER
+  // 23. FILTER
   // =========================================================
   {
     id: "filter_trait",
@@ -1560,7 +1798,136 @@ pub fn remove_at(s: String, index: usize) -> String {
   },
 
   // =========================================================
-  // 23. ITERATOR & RANGES
+  // 24. MATCH (OR SWITCH)
+  // =========================================================
+  {
+    id: "match_switch",
+    title: "match (or switch)",
+    summary: "Pattern matching in Rust.",
+    sections: [
+      { type: "subtitle", content: "Match Basics" },
+      {
+        type: "code",
+        code: `// rust does not have switch  it has match
+fn route_message(msg_type: &str) -> &str {
+  match msg_type {
+    "transaction" => "tpu",
+    "vote" => "consensus",
+    "shred" => "turbine",
+    "contact_info" => "gossip",
+    _ => "unknown"
+  }
+}`
+      },
+      { type: "subtitle", content: "Match vs is_some() / is_ok()" },
+      {
+        type: "code",
+        code: `// Although we can check if an Option or Result errored with .is_some() or .is_ok() the idiomatic way to check them is with a match statement.
+// remember match checks linearly one after other 
+
+fn main() {
+    let string_slice = "true";
+
+    let option_bool = match string_slice {
+        "true" => Some(true),
+        "false" => Some(false),
+        _ => None // default, in Option & Result case its gonna act as 
+    }; // <@ ; req, if you wanna return \`option_bool\` basic rust syntax, if let option_bool is not used ; would not be req, and match will automatically return whaterver => has
+    
+    println!("{:?}", option_bool);
+}`
+      },
+      { type: "subtitle", content: "Pattern Matching Exhaustiveness" },
+      {
+        type: "code",
+        code: `// also it can match the pattern as below example, if it doesnot contain all the combination the rust wont compile and error 
+
+fn main() {
+    let t = (0, 1);
+    let result = increment_if_not_zero(t);
+    println!("{:?}", result);
+}
+
+pub fn increment_if_not_zero(t: (u32, u32)) -> (u32, u32) {
+    match t {
+        (0, 0) => (0, 0),
+        (0, y) => (0, y + 1),
+        (x, 0) => (x + 1, 0),
+        (x, y) => (x+1, y+1) // <@ suppose this is not written rust will not compile
+    }
+}`
+      },
+      { type: "subtitle", content: "Matching Options" },
+      {
+        type: "code",
+        code: `// It is extremely common to use match statements with Options as below :
+fn main() {
+    let opt = Some(0);
+
+    match opt {
+        Some(0) => print!("zero"),
+        Some(_) => println!("non-zero"),
+        None => println!("empty"),
+    }
+}`
+      },
+      { type: "subtitle", content: "Match Inside Iterators" },
+      {
+        type: "code",
+        code: `// if let v = vec![Some(1), None, None, Some(-1)];
+// write a func to turn anything -ve to +ve and rest stays same :
+//  Output: [Some(1), None, None, Some(1)] , below is func :
+
+pub fn abs_inside_value(v: &[Option<i32>]) -> Vec<Option<i32>> {
+    v.iter().map(|&x| {
+        match x {
+            Some(val)  => {
+                if val < 0 { return Some(-val) }
+                else{ return Some(val) }     //<@ if u remove this will error out, cuzz missing a case where val >= 0
+            }
+            _ => x,
+        }
+    }).collect()
+}`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 25. HASHING IN RUST
+  // =========================================================
+  {
+    id: "hashing_rust",
+    title: "hashing in rust",
+    summary: "Cryptographic hashing.",
+    sections: [
+      { type: "subtitle", content: "SHA256" },
+      {
+        type: "code",
+        code: `sha256(data: &[u8]) -> [u8; 32]`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 26. CONVERSION(HEX, BYTES, [U8])
+  // =========================================================
+  {
+    id: "conversion_hex_bytes",
+    title: "conversion(hex, bytes, [u8])",
+    summary: "Converting between hex strings and byte arrays.",
+    sections: [
+      { type: "subtitle", content: "Hex <-> Bytes" },
+      {
+        type: "code",
+        code: `hex(&[u8]) -> String
+hex_to_bytes(&str) -> Vec<u8>`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 27. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -1609,6 +1976,7 @@ v.iter().filter(|&(x,y)| {condition}).copied().collect() == v.into_iter().filter
         code: `let result: i32 = v.into_iter().sum(); // note when used like this sum needs a mentioned type like \`: i32\`, else reverts, it can be removed but in some time in future it needs to be resolved 
 
 // as you can see above line is a single line where i32 needs to be mentioned but what if we are using sum inside the filer or map then if wanna not store the data in result we would replace sum as : sum::<i32>() to type cast the sum !
+sl.into_iter().product::<i32>() // single example
 
 .min() & max() // returns an Option cuzz the collection might be empty
 .product() // returns product
@@ -1700,12 +2068,32 @@ let s : HashSet<u32> = (0..10).collect() // since ranges silently gets converted
         type: "code",
         code: `use std::ops::Range;
 let my_range: Range<i32> = 0..10;`
+      },
+      { type: "subtitle", content: "Advanced Example: Sum of Previous Elements" },
+      {
+        type: "code",
+        code: `// Question is : given -> [1, 2, 3, 4, 20];
+// return true if sum of all the index values before a certain value is <= value else false 
+// for eg : 1+2+3 > 4 so false but 1+2+3+4 <= 20 so true 
+
+fn main() {
+    let a = vec![1, 2, 3, 4, 20];
+    let result = ge_sum_before(&a);
+    println!("{:?}", result); // [true, true, true, false, true]
+}
+
+pub fn ge_sum_before(sl: &[u32]) -> Vec<bool> {
+    sl.into_iter()
+        .enumerate()
+        .map(|(i, val)| *val >= sl[..i].into_iter().sum::<u32>())
+        .collect()
+}`
       }
     ]
   },
 
   // =========================================================
-  // 24. OWNERSHIP & CONSUMPTION
+  // 28. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -1791,7 +2179,10 @@ const Component6 = () => {
                     topic.title.toLowerCase().includes("hash") ? "🔑" :
                     topic.title.toLowerCase().includes("loop") ? "🔄" :
                     topic.title.toLowerCase().includes("cast") ? "🔀" :
+                    topic.title.toLowerCase().includes("result") ? "✅" :
                     topic.title.toLowerCase().includes("from") ? "➡️" :
+                    topic.title.toLowerCase().includes("match") ? "🎯" :
+                    topic.title.toLowerCase().includes("conversion") ? "💱" :
                     topic.title.toLowerCase().includes("if") ? "❓" : 
                     topic.title.toLowerCase().includes("tuple") ? "🍱" : 
                     topic.title.toLowerCase().includes("option") ? "🤷" : 
