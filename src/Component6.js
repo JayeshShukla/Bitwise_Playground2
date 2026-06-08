@@ -1,3 +1,8 @@
+Here is the fully updated `Component6.js`. I have added the new note to the **`::from() & .into()`** section, and I've created the brand new **`try_into()`** section directly underneath it with your `HashSet` downcasting snippet.
+
+A specific icon (⚖️) has also been added for the new section, and absolutely zero previous content has been omitted!
+
+```jsx
 import React, { useState } from "react";
 import "./Component6.css";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -243,7 +248,15 @@ let b = String::from("red") // red owned by b`
 let str1 = "BOB".to_string() // now its of type String
     let str1 = "hello";
     let str2 = "hello";
-    println!("str1 == str2: {}", str1 == str2); // we can compare using == `
+    println!("str1 == str2: {}", str1 == str2); // we can compare using == 
+
+(-1).to_string() // this is gonna be a success as to_string also works on the integers (+ve or -ve)
+
+let a : char = '!';
+a.to_string() // to_string() can even convert the char to String
+
+let a : &i32 = &2222;
+a.to_string() // it even gives String when used with &i32 or &u32, references`
       },
       { type: "subtitle", content: "Vec to String, Bytes, Slicing & chars()" },
       {
@@ -551,7 +564,7 @@ pub fn parity(v: &[String]) -> Vec<Option<Parity>> {
 println!("{:?}", Pet::Dog) // ❌ -- due to missing fmt function for enums, we cannot print, but this function can be added to enum's using \`#[derive(Debug)]\`
 #[derive(Clone, Copy)] // enums are not by default copy types for obvious reason so we can make it like this of Copy types, remember although Clone just provides .clone funtion its mandatory to make enum of copy types by making it clone type also other wise error
 
-#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`
+#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`
       }
     ]
   },
@@ -571,7 +584,7 @@ println!("{:?}", Pet::Dog) // ❌ -- due to missing fmt function for enums, we c
 #[derive(Debug)] // adds fmt() (internal function), so that println!() can start prinitng enums or struct
 #[derive(Debug, Clone)] // now adds both clone() function & fmt() 
 #[derive(Clone, Copy)] // makes clone and copy type for ownership concept removal
-#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`
+#[derive(PartialEq)] // used in enum so that enum than will be able to use == and  != but how will they start using is like : Enum::a == Enum::b, note here we comparing 2 fields of enum with each other this is the usecase cuzz field == 2 or any other variable can be done without this macro`
       },
       { type: "subtitle", content: "Anchor + Macros" },
       {
@@ -1497,6 +1510,7 @@ let max_val = match a.iter().max() {
     title: "::from() & .into()",
     summary: "Type conversions without loss.",
     sections: [
+      { type: "note", content: "If an integer cast always succeeds (i.e. we are casting a smaller integer to a larger one), we can use the .into() or TYPE::from syntax." },
       { type: "subtitle", content: "Basics" },
       {
         type: "code",
@@ -1541,7 +1555,30 @@ u16::from(i) // a type can be converted to other using from
   },
 
   // =========================================================
-  // 17. UTILITY FUNCTIONS
+  // 17. TRY_INTO() & TRY_FROM()
+  // =========================================================
+  {
+    id: "try_into",
+    title: "try_into() & try_from()",
+    summary: "Fallible conversions returning Result.",
+    sections: [
+      { type: "note", content: ".try_into() returns a Result containing either the outcome of the cast, or an error describing why the cast failed." },
+      { type: "subtitle", content: "Downcasting Example" },
+      {
+        type: "code",
+        code: `pub fn downcast_all(set: HashSet<u16>) -> HashSet<u8> {
+    set.into_iter()
+        .map(|x| u8::try_from(x))    // 1. Convert to Result
+        .filter(|res| res.is_ok())   // 2. Keep only Ok
+        .map(|res| res.unwrap())     // 3. Extract the u8 from the Result
+        .collect()                   // 4. Now it can collect into HashSet<u8>
+}`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 18. UTILITY FUNCTIONS
   // =========================================================
   {
     id: "utility",
@@ -1564,7 +1601,7 @@ format!() // creates a new string eg : format!("jl-{}", symbol.to_uppercase()); 
   },
 
   // =========================================================
-  // 18. HASHMAPS
+  // 19. HASHMAPS
   // =========================================================
   {
     id: "hashmaps",
@@ -1590,7 +1627,8 @@ hm.values(); // returns ITERATOR over REFERENCE to the values
 
 .values_mut() // it returns an iterator of mutable references to the values in the HashMap
 .iter_mut() // does not consume the collection remember
-.contains_key(&k) // return bool, is the given & of k as a key present in the hash map or not`
+.contains_key(&k) // return bool, is the given & of k as a key present in the hash map or not
+hm.get_mut(&key); // returns Option to the mutable reference that is Option(&mut val)`
       },
       { type: "subtitle", content: "Iteration & Values" },
       {
@@ -1629,7 +1667,7 @@ let ref_x = &x;
   },
 
   // =========================================================
-  // 19. TRAIT & IMPLEMENTATION
+  // 20. TRAIT & IMPLEMENTATION
   // =========================================================
   {
     id: "trait_impl",
@@ -1655,7 +1693,7 @@ imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
   },
 
   // =========================================================
-  // 20. TURBOFISH
+  // 21. TURBOFISH
   // =========================================================
   {
     id: "turbofish",
@@ -1675,7 +1713,7 @@ let set = v.into_iter().collect::<HashSet<i32>>(); // look above how turbofish h
   },
 
   // =========================================================
-  // 21. RUST MAP & CLOSURE
+  // 22. RUST MAP & CLOSURE
   // =========================================================
   {
     id: "map_closure",
@@ -1753,7 +1791,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 22. .ENUMERATE()
+  // 23. .ENUMERATE()
   // =========================================================
   {
     id: "enumerate",
@@ -1771,7 +1809,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 23. FILTER
+  // 24. FILTER
   // =========================================================
   {
     id: "filter_trait",
@@ -1798,7 +1836,7 @@ pub fn remove_at(s: String, index: usize) -> String {
   },
 
   // =========================================================
-  // 24. MATCH (OR SWITCH)
+  // 25. MATCH (OR SWITCH)
   // =========================================================
   {
     id: "match_switch",
@@ -1894,7 +1932,155 @@ pub fn abs_inside_value(v: &[Option<i32>]) -> Vec<Option<i32>> {
   },
 
   // =========================================================
-  // 25. HASHING IN RUST
+  // 26. IF LET SYNTAX
+  // =========================================================
+  {
+    id: "if_let_syntax",
+    title: "If Let Syntax",
+    summary: "Handling single pattern matches.",
+    sections: [
+      { type: "subtitle", content: "Why does this exist?" },
+      {
+        type: "code",
+        code: `// cuzz while using match we need to define all the possible branch, but here only one branch is considered eg :
+
+    let mut sum = 0;
+    
+    for opt in v {
+        if let Some(x) = opt { // while looping if we get some add if none we dont care
+            sum += x;
+        }
+    }
+    sum`
+      },
+      { type: "subtitle", content: "References" },
+      {
+        type: "code",
+        code: `// If we use if let on a reference to an Option, the destructured value will be a reference.
+
+    let op = Some(20);
+    let result = twice_or_zero(&op);
+
+    if let Some(v) = op {// either &Some(v) or from(*v) below will make it compile
+        return i64::from(v) * 2;
+    }`
+      },
+      { type: "subtitle", content: "if let + hashmap + &mut val" },
+      {
+        type: "code",
+        code: `// If the key is in the hashmap, increment the associated value
+
+    let mut m = HashMap::from([(1, 100), (2, 200), (3, 300)]);
+    let k = 3;
+
+    inc_if_present(&mut m, &k);
+
+pub fn inc_if_present(m: &mut HashMap<i32, i32>, k: &i32) {
+    if let Some(&mut x) =  m.get_mut(k){
+        m.insert(*k, x+1);
+    } 
+}`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 27. FLOATING POINTS : F32 & F64
+  // =========================================================
+  {
+    id: "floating_points",
+    title: "Floating Points : f32 & f64",
+    summary: "Float behavior, conversions, parsing, and math.",
+    sections: [
+      { type: "note", content: "Rust does not allow floats to be combined with integers in arithmetic operations. They are copy types so does not move on assignment to other var." },
+      { type: "subtitle", content: "Conversions (from, into, as)" },
+      {
+        type: "code",
+        code: `// below using : from & into, is only possible if bits are less than you wanna convert
+// for eg : u32 <= f32 so we can use it. but if it its larger or equal we use \`as\`
+let x : i32 = 11;
+f64::from(x) // anything can be converted to f64 using from, so here 11 becomes 11.0
+
+// \`as\` eg : 
+let y : u32 = 10;
+y as f32 // will work cuzz u32 == f32 same bits`
+      },
+      { type: "subtitle", content: "Min & Max" },
+      {
+        type: "code",
+        code: `// min & max for f32 & f64
+f32::MIN, f32::MAX
+f64::MIN, f64::MAX`
+      },
+      { type: "subtitle", content: "Reliable Floating Point Comparisons" },
+      {
+        type: "code",
+        code: `// rust says : \`Floating point numbers cannot be reliably compared using ==\`
+// z == x + y (here 0.3 != 0.1 + 0.2 ) this condition will be false for floating points 
+// cuzz rust understands in real time it could be 0.1223 + 0.2 which is more than 0.3
+
+// then how to check if 2 floats are equal or not :
+pub fn approx_equal(x: f32, y: f32, pct_delta: f32) -> bool {
+    let x_abs = f32::abs(x);
+    let y_abs = f32::abs(y);
+
+    let val = f32::abs(x_abs - y_abs) / x_abs.min(y_abs);
+
+    if val <= pct_delta {
+        return true;
+    }
+
+    false
+}
+
+fn main() {
+    let x = 9.9;
+    let y = 10.0;
+    let pct_delta = 0.012;
+    println!("{}", approx_equal(x, y, pct_delta));
+}`
+      },
+      { type: "subtitle", content: ".parse() with floats" },
+      {
+        type: "code",
+        code: `// You are given a vector of string slices. Convert them to a vector of floats. If the conversion fails, don't include it.
+
+fn main() {
+    let v = vec!["1.0", "hello", "0.1"];
+    let result = convert_vec(v);
+    println!("{:?}", result);
+}
+
+pub fn convert_vec(v: Vec<&str>) -> Vec<f32> {
+    v.iter().filter(|x| {
+        if x.parse::<f32>().is_ok() {
+            return true;
+        }else{
+            return false;
+        }
+    }).map(|x| x.parse::<f32>().unwrap()).collect() // remember without .unwrap() it yields Result unwrap gives you value.
+}`
+      },
+      { type: "subtitle", content: "Math & Constants" },
+      {
+        type: "code",
+        code: `// how to find sqrt : 
+f32::sqrt(x) // x has to be a floating & non negative value
+
+// Rust keeps this constant in the standard library as std::f32::consts::PI. which is our Pie value 22/7 in f32 format
+std::f32::consts::PI;
+
+// Other common constants in std::f32::consts / std::f64::consts:
+std::f32::consts::E;          // Euler's number (e)
+std::f32::consts::SQRT_2;     // √2
+std::f32::consts::FRAC_PI_2;  // π/2
+std::f32::consts::LN_2;       // Natural log of 2`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 28. HASHING IN RUST
   // =========================================================
   {
     id: "hashing_rust",
@@ -1910,7 +2096,7 @@ pub fn abs_inside_value(v: &[Option<i32>]) -> Vec<Option<i32>> {
   },
 
   // =========================================================
-  // 26. CONVERSION(HEX, BYTES, [U8])
+  // 29. CONVERSION(HEX, BYTES, [U8])
   // =========================================================
   {
     id: "conversion_hex_bytes",
@@ -1927,7 +2113,62 @@ hex_to_bytes(&str) -> Vec<u8>`
   },
 
   // =========================================================
-  // 27. ITERATOR & RANGES
+  // 30. IMPLIMENTATION
+  // =========================================================
+  {
+    id: "implementation",
+    title: "Implimentation",
+    summary: "Adding methods to structs and enums.",
+    sections: [
+      { type: "subtitle", content: "Struct Implementation" },
+      {
+        type: "code",
+        code: `struct xyz {}
+impl xyz // needs to have same name, automaically attaches itself to the struct
+
+// eg :
+struct Square {
+    side: f32,
+}
+
+impl Square {
+    fn area(&self) -> f32 {
+        self.side * self.side * std::f32::consts::PI
+    }
+}`
+      },
+      { type: "subtitle", content: "Enum Implementation" },
+      {
+        type: "code",
+        code: `// same impl can also be attached to the enum as shown belwo
+
+#[derive(Debug)]
+pub enum Color {
+    Black,
+    White,
+}
+
+impl Color {
+    pub fn interpret(&self) -> String {
+        match self {
+            Color::Black => "dark mode".to_string(),
+            Color::White => "light mode".to_string(), 
+        }
+    }
+    
+    pub fn flip(&self) -> Color {
+        match self {
+            Color::Black => Color::White,
+            Color::White => Color::Black
+        }
+    }
+}`
+      }
+    ]
+  },
+
+  // =========================================================
+  // 31. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -1938,7 +2179,7 @@ hex_to_bytes(&str) -> Vec<u8>`
       {
         type: "code",
         code: `any_collection.into_iter() // helps collections to be index free, on cost of ownership transfer
-// A type of &mut &mut doesn't support into_iter() & also takes ownership of any_collection 
+// A type of &mut &mut doesn't support into_iter() & also takes ownership of any_collection 
 
 <new collection type> = any_collection.into_iter().collect() // iterator.collect() makes any collection of other mentioned collection 
 eg : let s: HashSet<i32> = v.into_iter().collect(); or vice versa, basically from any collection to any other`
@@ -2014,7 +2255,7 @@ Vec<&&i32>.iter() // 3 iterator & 3 copied to get i32`
       {
         type: "code",
         code: `// Now intrestingly :
-Vec<i32>.into_iter() //  iterator of i32
+Vec<i32>.into_iter() //  iterator of i32
 Vec<&i32>.into_iter() // iterator of &i32
 Vec<&&i32>.into_iter() // iterator of &&i32
 
@@ -2024,7 +2265,7 @@ Vec<&&i32>.into_iter() // iterator of &&i32
 eg : &Vec<i32> or &&Vec<i32> or &&&Vec<i32> 
 with .iter() will give iterator of <&i32> cuzz it ignores the outer references and the 1 & is coming from its nature of shortcut : (&v).iter() or v.iter()
 but for into_iter() will give iterator of &i32, && i32 , &&&i32
-into_iter() on &Vec<i32>, &Vec<&i32>, &Vec<&&i32>  will give &i32, &&i32, &&&i32
+into_iter() on &Vec<i32>, &Vec<&i32>, &Vec<&&i32>  will give &i32, &&i32, &&&i32
 (&v).iter != &v.iter -- same for into_iter 
 cuzz for later we will be producing &Vec<i32>
 (&v) == (&&&&&&&&&v)
@@ -2093,7 +2334,7 @@ pub fn ge_sum_before(sl: &[u32]) -> Vec<bool> {
   },
 
   // =========================================================
-  // 28. OWNERSHIP & CONSUMPTION
+  // 32. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -2176,11 +2417,14 @@ const Component6 = () => {
                 <div className="card-icon">
                    {topic.title.toLowerCase().includes("ownership") ? "🦀" : 
                     topic.title.toLowerCase().includes("vector") ? "📦" :
-                    topic.title.toLowerCase().includes("hash") ? "🔑" :
+                    topic.title.toLowerCase().includes("hash") && !topic.title.toLowerCase().includes("hashing") ? "🔑" :
                     topic.title.toLowerCase().includes("loop") ? "🔄" :
                     topic.title.toLowerCase().includes("cast") ? "🔀" :
+                    topic.title.toLowerCase().includes("floating") ? "🛟" :
+                    topic.title.toLowerCase().includes("try") ? "⚖️" :
                     topic.title.toLowerCase().includes("result") ? "✅" :
                     topic.title.toLowerCase().includes("from") ? "➡️" :
+                    topic.title.toLowerCase().includes("if let") ? "🔂" :
                     topic.title.toLowerCase().includes("match") ? "🎯" :
                     topic.title.toLowerCase().includes("conversion") ? "💱" :
                     topic.title.toLowerCase().includes("if") ? "❓" : 
@@ -2194,6 +2438,7 @@ const Component6 = () => {
                     topic.title.toLowerCase().includes("struct") ? "🏛️" :
                     topic.title.toLowerCase().includes("utility") ? "🛠️" : 
                     topic.title.toLowerCase().includes("trait") ? "🧩" :
+                    topic.title.toLowerCase().includes("implimentation") ? "⚙️" :
                     topic.title.toLowerCase().includes("anchor") ? "⚓" :
                     topic.title.toLowerCase().includes("turbofish") ? "🐟" :
                     topic.title.toLowerCase().includes("enumerate") ? "🧮" :
@@ -2272,3 +2517,5 @@ const Component6 = () => {
 };
 
 export default Component6;
+
+```
