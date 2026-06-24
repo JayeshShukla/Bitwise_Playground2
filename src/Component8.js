@@ -176,7 +176,7 @@ const Component8 = () => {
               fontSize: "14px",
             }}
           >
-            Paste Calldata or Hex Here (0x is ignored)
+            Paste Calldata ({bytes.length} bytes)
           </label>
 
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
