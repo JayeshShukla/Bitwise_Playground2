@@ -47,6 +47,12 @@ const Navbar = ({ setActiveComponent }) => {
       >
         Rust tools
       </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component8")}
+      >
+        EVM bytes32
+      </button>
     </nav>
   );
 };
