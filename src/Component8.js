@@ -5,7 +5,6 @@ const Component8 = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [bytes, setBytes] = useState([]);
   const [copied, setCopied] = useState(false);
-  const [copiedRowIndex, setCopiedRowIndex] = useState(null);
 
   // Drag & Drop Selection States
   const [selectionStart, setSelectionStart] = useState(null);
@@ -71,13 +70,6 @@ const Component8 = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRowCopy = (rowArray, rowIndex) => {
-    const rowHex = rowArray.join("");
-    navigator.clipboard.writeText(rowHex);
-    setCopiedRowIndex(rowIndex);
-    setTimeout(() => setCopiedRowIndex(null), 2000);
-  };
-
   // Drag Selection Handlers
   const handleMouseDown = (index) => {
     setSelectionStart(index);
@@ -137,7 +129,8 @@ const Component8 = () => {
     rows.push(bytes.slice(i, i + 32));
   }
 
-  const OFFSET_WIDTH = "100px";
+  // Adjusted constants to shift layout extremely left
+  const OFFSET_WIDTH = "70px";
   const PIPE_WIDTH = "24px";
   const BYTE_WIDTH = "26px";
   const BYTE_GAP = "6px";
@@ -148,7 +141,7 @@ const Component8 = () => {
         width: "100%",
         minHeight: "100vh",
         backgroundColor: "#09090b",
-        padding: "24px",
+        padding: "24px 12px", // Reduced horizontal padding to hug left
         color: "#d4d4d8",
         fontFamily: "system-ui, -apple-system, sans-serif",
         boxSizing: "border-box",
@@ -156,6 +149,22 @@ const Component8 = () => {
         position: "relative",
       }}
     >
+      {/* Hide scrollbar strictly for the decimal overflow columns */}
+      <style>
+        {`
+          .hide-scrollbar::-webkit-scrollbar {
+            height: 4px;
+          }
+          .hide-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .hide-scrollbar::-webkit-scrollbar-thumb {
+            background: #3f3f46;
+            border-radius: 4px;
+          }
+        `}
+      </style>
+
       <div style={{ maxWidth: "1600px", margin: "0 auto", width: "100%" }}>
         {/* HEADER CONTROLS */}
         <div
@@ -341,7 +350,7 @@ const Component8 = () => {
 
           <div
             style={{
-              padding: "24px",
+              padding: "24px 16px", // Tightened padding to pull left
               overflowX: "auto",
               width: "100%",
               position: "relative",
@@ -400,20 +409,39 @@ const Component8 = () => {
                       ))}
                     </div>
 
+                    {/* Header for Decimal values */}
                     <div
                       style={{
-                        width: "36px",
-                        minWidth: "36px",
-                        flexShrink: 0,
-                        marginLeft: "12px",
+                        marginLeft: "24px",
+                        color: "#52525b",
+                        fontSize: "12px",
+                        fontWeight: "bold",
                       }}
-                    ></div>
+                    >
+                      DECIMAL / MULTIPLE
+                    </div>
                   </div>
 
                   {/* DATA ROWS */}
                   {rows.map((row, rowIndex) => {
                     const offset = rowIndex * 32;
                     const isEvenRow = rowIndex % 2 === 0;
+
+                    // Compute BigInt for the complete 32-byte chunk
+                    const fullRowHex = Array.from({ length: 32 })
+                      .map((_, i) => row[i] || "00")
+                      .join("");
+
+                    let rowBigInt = 0n;
+                    try {
+                      rowBigInt = BigInt("0x" + fullRowHex);
+                    } catch (e) {}
+
+                    const isMultiple = rowBigInt > 0n && rowBigInt % 32n === 0n;
+                    const factor = isMultiple
+                      ? (rowBigInt / 32n).toString()
+                      : "";
+                    const decString = rowBigInt.toString();
 
                     return (
                       <div
@@ -495,10 +523,10 @@ const Component8 = () => {
                             let zIndex = 0;
 
                             if (isHighlighted) {
-                              bgColor = "rgba(59, 130, 246, 0.15)"; // Azure Blue tint
-                              textColor = "#93c5fd"; // Blue-300
+                              bgColor = "rgba(59, 130, 246, 0.15)";
+                              textColor = "#93c5fd";
                               fontWeight = "bold";
-                              borderColor = "rgba(59, 130, 246, 0.5)"; // Blue-500
+                              borderColor = "rgba(59, 130, 246, 0.5)";
                               glowShadow =
                                 "0 0 12px rgba(59, 130, 246, 0.3), inset 0 0 6px rgba(59, 130, 246, 0.15)";
                               textGlow = "0 0 8px rgba(59, 130, 246, 0.6)";
@@ -506,10 +534,10 @@ const Component8 = () => {
                             }
 
                             if (isRangeSelected) {
-                              bgColor = "rgba(139, 92, 246, 0.25)"; // Soft Lavender tint
-                              textColor = "#c4b5fd"; // Violet-300
+                              bgColor = "rgba(139, 92, 246, 0.25)";
+                              textColor = "#c4b5fd";
                               fontWeight = "bold";
-                              borderColor = "rgba(139, 92, 246, 0.6)"; // Violet-500
+                              borderColor = "rgba(139, 92, 246, 0.6)";
                               glowShadow = "0 0 12px rgba(139, 92, 246, 0.4)";
                               textGlow = "0 0 8px rgba(139, 92, 246, 0.7)";
                               zIndex = 20;
@@ -598,85 +626,41 @@ const Component8 = () => {
                           })}
                         </div>
 
-                        {/* Row Copy Button */}
+                        {/* NEW DECIMAL REPRESENTATION COLUMN */}
                         <div
+                          className="hide-scrollbar"
                           style={{
-                            width: "36px",
-                            minWidth: "36px",
-                            flexShrink: 0,
-                            marginLeft: "12px",
+                            marginLeft: "24px",
+                            maxWidth: "400px", // Prevents massive stretch, gives horizontal scroll instead
+                            overflowX: "auto",
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
+                            fontSize: "13px",
+                            paddingBottom: "2px", // Safe space for scrollbars
+                            whiteSpace: "nowrap",
+                            color: "#71717a", // Neutral grey for default text
                           }}
                         >
-                          <button
-                            onClick={() => handleRowCopy(row, rowIndex)}
-                            title="Copy 32-byte row"
-                            style={{
-                              background: "transparent",
-                              border: "none",
-                              color:
-                                copiedRowIndex === rowIndex
-                                  ? "#10b981"
-                                  : "#52525b",
-                              cursor: "pointer",
-                              padding: "4px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              transition:
-                                "color 0.2s ease, transform 0.1s ease",
-                              transform:
-                                copiedRowIndex === rowIndex
-                                  ? "scale(1.1)"
-                                  : "scale(1)",
-                            }}
-                            onMouseEnter={(e) => {
-                              if (copiedRowIndex !== rowIndex)
-                                e.currentTarget.style.color = "#d4d4d8";
-                            }}
-                            onMouseLeave={(e) => {
-                              if (copiedRowIndex !== rowIndex)
-                                e.currentTarget.style.color = "#52525b";
-                            }}
-                          >
-                            {copiedRowIndex === rowIndex ? (
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                          {isMultiple ? (
+                            <>
+                              32 *{" "}
+                              <span
+                                style={{
+                                  color: "#fbbf24", // Amber-400 so X stands out
+                                  fontWeight: "bold",
+                                  margin: "0 6px",
+                                }}
                               >
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
-                            ) : (
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <rect
-                                  x="9"
-                                  y="9"
-                                  width="13"
-                                  height="13"
-                                  rx="2"
-                                  ry="2"
-                                ></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                              </svg>
-                            )}
-                          </button>
+                                {factor}
+                              </span>{" "}
+                              ={" "}
+                              <span style={{ marginLeft: "6px" }}>
+                                {decString}
+                              </span>
+                            </>
+                          ) : (
+                            <span>{decString}</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -735,7 +719,7 @@ const Component8 = () => {
                 alignItems: "center",
                 gap: "6px",
                 padding: "8px 16px",
-                backgroundColor: selectionCopied ? "#059669" : "#8b5cf6", // Indigo/Lavender button
+                backgroundColor: selectionCopied ? "#059669" : "#8b5cf6",
                 color: "#ffffff",
                 border: "none",
                 borderRadius: "999px",
