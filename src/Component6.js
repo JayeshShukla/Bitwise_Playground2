@@ -320,17 +320,115 @@ pub fn parse_or_remove(v: &[&str]) -> Vec<i16> {
   {
     id: "struct",
     title: "Struct",
-    summary: "Custom data types.",
+    summary: "Custom data types and equality.",
     sections: [
-      { type: "subtitle", content: "Definition & Instantiation" },
+      {
+        type: "note",
+        content:
+          "Like enums, without the Copy attribute, structs cannot be copied.",
+      },
+      { type: "subtitle", content: "Struct Copying & Referencing" },
       {
         type: "code",
-        code: `struct S {
-	f: i32; // can you see let keyword is not used, instead its currently private and accessible to same crate, to make it accesible to read via other crates outside main make it pub
+        code: `#[derive(Debug)] // <@ printling this wont work , to make ti work add  Copy, Clone Trait
+struct Rectangle {
+    width: u32,
+    height: u32,
 }
-let s = S { f: 3 }; // normal instanciation and can be now read as s.f 
-#[derive(Debug)] // for struct its required to have Debug attribute to inherit the fmt functtion of a predefined trait
-distance(point); // if point is a struct instance and passed in a function which is public the struct will just give warning if the struct is in same crate but will give error if in diff crate and trying so need to make the struct as pub as well cuzz function is also pub`,
+
+// or else if you wanna print do it by making a veriable and passing the reference to a variable of this struct 
+
+// eg : 
+    let rect1 = Rectangle { width: 30, height: 50 };
+    let rect2 = &rect1;  // & can be removed if used trait both Copy & Clone it basically does that for you`,
+      },
+      { type: "subtitle", content: "Struct Cloning with Non-Copy Types" },
+      {
+        type: "code",
+        code: `// if a stuct has non Copy types then above & wont work, in such case remove the Copy trait, keep the Clone trait only and use below instead :
+
+    let user = User {
+        name: String::from("Alice"),
+        age: 25,
+    };
+    
+    let user2 = user.clone();  // success cuzz you used Clone trait and need to remove Copy trait for clone() to work`,
+      },
+      { type: "subtitle", content: "Struct Equality" },
+      {
+        type: "code",
+        code: `// To compare structs for equality using ==, we need to impliment PartialEq trait as shown below :
+
+#[derive(Debug, PartialEq)]
+struct Person {
+    name: String,
+    id: u32,
+}
+
+fn main() {
+    let p1 = Person {
+        name: String::from("Bob"),
+        id: 100,
+    };
+    
+    let p2 = Person {
+        name: String::from("Bob"),
+        id: 100,
+    };
+    
+    if p1 == p2 {
+        println!("People are equal!");
+    }
+}`,
+      },
+      { type: "subtitle", content: "Derive Attribute Propagation" },
+      {
+        type: "code",
+        code: `// if you want to use a #[derive(...)] attribute on a struct, every field inside that struct must also support that same attribute meaning ->
+
+pub struct A {} 
+// due to some logic you are suppose to need to add #[derive attributes]
+// now if the struct A also has some datatype such as for eg enum even it should also have those attributes eg :
+
+pub enum ClothType {
+    Wool,
+    Cotton,
+    Kashmir,
+    Nylon,
+}
+
+pub struct Fabric {
+    cloth_type: ClothType,
+    length_meters: u16,
+}
+
+// 1) step one suppose due to main function logic you are need to add : #[derive(Debug, Clone, Copy)]
+// so now you also need to add it to the enum`,
+      },
+      { type: "subtitle", content: "Structs in HashSets" },
+      {
+        type: "code",
+        code: `// Debug for printing.
+// Hash, Eq, and PartialEq for making Enums hashable.
+// PartialEq for Struct equality.
+
+// just like with Enums, a Struct cannot be put into a HashSet unless it has the "big three" for hashing:
+
+use std::collections::HashSet;
+
+// this will error unless you put : #[derive(Debug, PartialEq, Eq, Hash)] over the Mono struct
+pub struct Mono {
+    a: i32,
+}
+
+fn main() {
+    let hs = HashSet::from([
+        Mono { a: 1 },
+        Mono { a: 2 },
+    ]);
+    
+    println!("{:?}", hs);
+}`,
       },
       { type: "subtitle", content: "Destructuring" },
       {
