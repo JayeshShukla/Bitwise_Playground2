@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Buffer } from "buffer";
 import "./styles.css";
 
@@ -232,6 +232,33 @@ const CHAIN_GROUPS = [
 
 const DEFAULT_CHAIN_KEY = "solana-devnet";
 
+// --- EIP-6963 multi-wallet discovery -----------------------------------
+// Both MetaMask and Phantom (and others) inject an EVM provider onto
+// window.ethereum, so whichever one loads/claims it last silently wins —
+// that's why "Base Sepolia" kept opening Phantom. EIP-6963 has every
+// installed wallet announce itself independently (with its own provider
+// object + name/icon), so we can let the user pick the exact wallet
+// instead of guessing via the shared global.
+function useEvmProviders() {
+  const [providers, setProviders] = useState([]); // [{ info: {uuid,name,icon,rdns}, provider }]
+
+  useEffect(() => {
+    const onAnnounce = (event) => {
+      const { info, provider } = event.detail;
+      setProviders((prev) => {
+        if (prev.some((p) => p.info.uuid === info.uuid)) return prev;
+        return [...prev, { info, provider }];
+      });
+    };
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    return () =>
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+  }, []);
+
+  return providers;
+}
+
 const UniversalSender = ({ chainKey, setChainKey }) => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -241,6 +268,17 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
   const [amount, setAmount] = useState("");
   const [decimals, setDecimals] = useState("");
   const [status, setStatus] = useState("");
+
+  const evmProviders = useEvmProviders();
+  const [selectedEvmRdns, setSelectedEvmRdns] = useState("");
+
+  // Auto-pick when there's exactly one EVM wallet installed; otherwise
+  // the user must choose explicitly (that choice is what was missing).
+  useEffect(() => {
+    if (evmProviders.length === 1 && !selectedEvmRdns) {
+      setSelectedEvmRdns(evmProviders[0].info.rdns);
+    }
+  }, [evmProviders, selectedEvmRdns]);
 
   const chain = CHAINS_BY_KEY[chainKey];
   const isSolana = chain.type === "solana";
@@ -312,20 +350,20 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
   };
 
   // --- EVM TRANSFER LOGIC ---
-  const ensureCorrectEvmNetwork = async (provider) => {
-    const network = await provider.getNetwork();
+  const ensureCorrectEvmNetwork = async (eip1193Provider, browserProvider) => {
+    const network = await browserProvider.getNetwork();
     if (network.chainId === BigInt(chain.chainIdDec)) return;
 
     setStatus(`Switching wallet to ${chain.label}...`);
     try {
-      await window.ethereum.request({
+      await eip1193Provider.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: chain.chainIdHex }],
       });
     } catch (switchError) {
       // 4902 = chain not yet added to the wallet
       if (switchError && switchError.code === 4902) {
-        await window.ethereum.request({
+        await eip1193Provider.request({
           method: "wallet_addEthereumChain",
           params: [
             {
@@ -337,7 +375,7 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
             },
           ],
         });
-        await window.ethereum.request({
+        await eip1193Provider.request({
           method: "wallet_switchEthereumChain",
           params: [{ chainId: chain.chainIdHex }],
         });
@@ -350,18 +388,26 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
   };
 
   const handleEVMTransfer = async () => {
-    if (!window.ethereum) {
+    const selected = evmProviders.find((p) => p.info.rdns === selectedEvmRdns);
+    // Fall back to window.ethereum only if EIP-6963 found nothing at all
+    // (an older wallet that doesn't announce itself yet).
+    const eip1193Provider = selected ? selected.provider : window.ethereum;
+
+    if (!eip1193Provider) {
       throw new Error(
         "No EVM wallet found. Please install MetaMask or another injected wallet."
       );
     }
+    if (evmProviders.length > 1 && !selected) {
+      throw new Error("Please select which EVM wallet to use above.");
+    }
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.BrowserProvider(eip1193Provider);
     await provider.send("eth_requestAccounts", []);
-    await ensureCorrectEvmNetwork(provider);
+    await ensureCorrectEvmNetwork(eip1193Provider, provider);
 
     // Re-fetch the signer after a potential network switch.
-    const freshProvider = new ethers.BrowserProvider(window.ethereum);
+    const freshProvider = new ethers.BrowserProvider(eip1193Provider);
     const signer = await freshProvider.getSigner();
 
     if (tokenAddress) {
@@ -428,10 +474,54 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
           <div style={{ marginBottom: "20px" }}>
             <WalletMultiButton />
           </div>
+        ) : evmProviders.length > 0 ? (
+          <div style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}>
+            <label>
+              <strong>Select EVM Wallet</strong>
+            </label>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                marginTop: "8px",
+              }}
+            >
+              {evmProviders.map(({ info }) => (
+                <button
+                  key={info.rdns}
+                  type="button"
+                  onClick={() => setSelectedEvmRdns(info.rdns)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border:
+                      selectedEvmRdns === info.rdns
+                        ? "2px solid #60a5fa"
+                        : "1px solid #475569",
+                    background:
+                      selectedEvmRdns === info.rdns
+                        ? "rgba(96, 165, 250, 0.15)"
+                        : "rgba(255, 255, 255, 0.05)",
+                    color: "#f8fafc",
+                    margin: 0,
+                  }}
+                >
+                  {info.icon && (
+                    <img src={info.icon} alt="" style={{ width: 20, height: 20 }} />
+                  )}
+                  {info.name}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : (
           <p style={{ color: "#93c5fd", marginBottom: "20px" }}>
-            Uses your browser's injected wallet (MetaMask, Rabby, Coinbase
-            Wallet, Brave Wallet, etc.) — connect below via "Send".
+            No EVM wallet detected. Please install MetaMask or another
+            injected wallet.
           </p>
         )}
 
