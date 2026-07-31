@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Buffer } from "buffer";
 import "./styles.css";
 
@@ -9,7 +9,6 @@ import {
   useConnection,
   useWallet,
 } from "@solana/wallet-adapter-react";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
   WalletModalProvider,
   WalletMultiButton,
@@ -34,18 +33,222 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 // EVM Imports
 import { ethers } from "ethers";
 
-// CRITICAL POLYFILL: This prevents Solana web3 from crashing in CodeSandbox
+// CRITICAL POLYFILL: This prevents Solana web3 from crashing in the browser
 window.Buffer = window.Buffer || Buffer;
 
-const UniversalSender = () => {
+// --- Chain registry ---------------------------------------------------
+// Add a new EVM chain by appending one object here — the chain picker,
+// the wallet_switchEthereumChain/wallet_addEthereumChain flow, and the
+// transfer logic all read from this list.
+
+const EVM_CHAINS = [
+  // --- Mainnets ---
+  {
+    key: "eth-mainnet",
+    type: "evm",
+    label: "Ethereum",
+    group: "Mainnet",
+    chainIdHex: "0x1",
+    chainIdDec: 1,
+    rpcUrls: ["https://eth.llamarpc.com"],
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://etherscan.io"],
+  },
+  {
+    key: "base-mainnet",
+    type: "evm",
+    label: "Base",
+    group: "Mainnet",
+    chainIdHex: "0x2105",
+    chainIdDec: 8453,
+    rpcUrls: ["https://mainnet.base.org"],
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://basescan.org"],
+  },
+  {
+    key: "arbitrum-mainnet",
+    type: "evm",
+    label: "Arbitrum One",
+    group: "Mainnet",
+    chainIdHex: "0xa4b1",
+    chainIdDec: 42161,
+    rpcUrls: ["https://arb1.arbitrum.io/rpc"],
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://arbiscan.io"],
+  },
+  {
+    key: "optimism-mainnet",
+    type: "evm",
+    label: "Optimism",
+    group: "Mainnet",
+    chainIdHex: "0xa",
+    chainIdDec: 10,
+    rpcUrls: ["https://mainnet.optimism.io"],
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://optimistic.etherscan.io"],
+  },
+  {
+    key: "polygon-mainnet",
+    type: "evm",
+    label: "Polygon",
+    group: "Mainnet",
+    chainIdHex: "0x89",
+    chainIdDec: 137,
+    rpcUrls: ["https://polygon-rpc.com"],
+    nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+    blockExplorerUrls: ["https://polygonscan.com"],
+  },
+  {
+    key: "bsc-mainnet",
+    type: "evm",
+    label: "BNB Smart Chain",
+    group: "Mainnet",
+    chainIdHex: "0x38",
+    chainIdDec: 56,
+    rpcUrls: ["https://bsc-dataseed.binance.org"],
+    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+    blockExplorerUrls: ["https://bscscan.com"],
+  },
+  {
+    key: "avalanche-mainnet",
+    type: "evm",
+    label: "Avalanche C-Chain",
+    group: "Mainnet",
+    chainIdHex: "0xa86a",
+    chainIdDec: 43114,
+    rpcUrls: ["https://api.avax.network/ext/bc/C/rpc"],
+    nativeCurrency: { name: "Avalanche", symbol: "AVAX", decimals: 18 },
+    blockExplorerUrls: ["https://snowtrace.io"],
+  },
+
+  // --- Testnets ---
+  {
+    key: "eth-sepolia",
+    type: "evm",
+    label: "Ethereum Sepolia",
+    group: "Testnet",
+    chainIdHex: "0xaa36a7",
+    chainIdDec: 11155111,
+    rpcUrls: ["https://rpc.sepolia.org"],
+    nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://sepolia.etherscan.io"],
+  },
+  {
+    key: "base-sepolia",
+    type: "evm",
+    label: "Base Sepolia",
+    group: "Testnet",
+    chainIdHex: "0x14a34",
+    chainIdDec: 84532,
+    rpcUrls: ["https://sepolia.base.org"],
+    nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://sepolia.basescan.org"],
+  },
+  {
+    key: "arbitrum-sepolia",
+    type: "evm",
+    label: "Arbitrum Sepolia",
+    group: "Testnet",
+    chainIdHex: "0x66eee",
+    chainIdDec: 421614,
+    rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
+    nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://sepolia.arbiscan.io"],
+  },
+  {
+    key: "optimism-sepolia",
+    type: "evm",
+    label: "Optimism Sepolia",
+    group: "Testnet",
+    chainIdHex: "0xaa37dc",
+    chainIdDec: 11155420,
+    rpcUrls: ["https://sepolia.optimism.io"],
+    nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://sepolia-optimism.etherscan.io"],
+  },
+  {
+    key: "polygon-amoy",
+    type: "evm",
+    label: "Polygon Amoy",
+    group: "Testnet",
+    chainIdHex: "0x13882",
+    chainIdDec: 80002,
+    rpcUrls: ["https://rpc-amoy.polygon.technology"],
+    nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+    blockExplorerUrls: ["https://amoy.polygonscan.com"],
+  },
+  {
+    key: "bsc-testnet",
+    type: "evm",
+    label: "BNB Testnet",
+    group: "Testnet",
+    chainIdHex: "0x61",
+    chainIdDec: 97,
+    rpcUrls: ["https://data-seed-prebsc-1-s1.binance.org:8545"],
+    nativeCurrency: { name: "BNB", symbol: "tBNB", decimals: 18 },
+    blockExplorerUrls: ["https://testnet.bscscan.com"],
+  },
+  {
+    key: "avalanche-fuji",
+    type: "evm",
+    label: "Avalanche Fuji",
+    group: "Testnet",
+    chainIdHex: "0xa869",
+    chainIdDec: 43113,
+    rpcUrls: ["https://api.avax-test.network/ext/bc/C/rpc"],
+    nativeCurrency: { name: "Avalanche", symbol: "AVAX", decimals: 18 },
+    blockExplorerUrls: ["https://testnet.snowtrace.io"],
+  },
+];
+
+const SOLANA_CHAINS = [
+  {
+    key: "solana-mainnet",
+    type: "solana",
+    label: "Solana",
+    group: "Mainnet",
+    cluster: "mainnet-beta",
+    nativeCurrency: { symbol: "SOL", decimals: 9 },
+  },
+  {
+    key: "solana-devnet",
+    type: "solana",
+    label: "Solana Devnet",
+    group: "Testnet",
+    cluster: "devnet",
+    nativeCurrency: { symbol: "SOL", decimals: 9 },
+  },
+];
+
+const CHAINS_BY_KEY = Object.fromEntries(
+  [...EVM_CHAINS, ...SOLANA_CHAINS].map((c) => [c.key, c])
+);
+
+const CHAIN_GROUPS = [
+  { label: "Solana", chains: SOLANA_CHAINS },
+  { label: "EVM Mainnets", chains: EVM_CHAINS.filter((c) => c.group === "Mainnet") },
+  { label: "EVM Testnets", chains: EVM_CHAINS.filter((c) => c.group === "Testnet") },
+];
+
+const DEFAULT_CHAIN_KEY = "solana-devnet";
+
+const UniversalSender = ({ chainKey, setChainKey }) => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
 
-  const [chain, setChain] = useState("solana-devnet");
   const [recipient, setRecipient] = useState("");
   const [tokenAddress, setTokenAddress] = useState("");
   const [amount, setAmount] = useState("");
+  const [decimals, setDecimals] = useState("");
   const [status, setStatus] = useState("");
+
+  const chain = CHAINS_BY_KEY[chainKey];
+  const isSolana = chain.type === "solana";
+
+  // Default decimals shown as a placeholder; user can override for
+  // non-standard tokens (e.g. 6 for USDC on either ecosystem).
+  const defaultDecimals = isSolana ? 6 : 18;
+  const resolvedDecimals = decimals === "" ? defaultDecimals : parseInt(decimals, 10);
 
   // --- SOLANA TRANSFER LOGIC ---
   const handleSolanaTransfer = async () => {
@@ -77,7 +280,7 @@ const UniversalSender = () => {
         );
       }
 
-      const tokenAmount = parseFloat(amount) * Math.pow(10, 6);
+      const tokenAmount = Math.round(parseFloat(amount) * Math.pow(10, resolvedDecimals));
 
       transaction.add(
         createTransferInstruction(
@@ -88,7 +291,7 @@ const UniversalSender = () => {
         )
       );
     } else {
-      const lamports = parseFloat(amount) * LAMPORTS_PER_SOL;
+      const lamports = Math.round(parseFloat(amount) * LAMPORTS_PER_SOL);
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
@@ -109,41 +312,71 @@ const UniversalSender = () => {
   };
 
   // --- EVM TRANSFER LOGIC ---
-  const handleEVMTransfer = async () => {
-    if (!window.ethereum) throw new Error("Please install MetaMask.");
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = await provider.getSigner();
-
+  const ensureCorrectEvmNetwork = async (provider) => {
     const network = await provider.getNetwork();
-    if (network.chainId !== 11155111n) {
-      setStatus("Switching MetaMask to Sepolia Testnet...");
-      try {
+    if (network.chainId === BigInt(chain.chainIdDec)) return;
+
+    setStatus(`Switching wallet to ${chain.label}...`);
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: chain.chainIdHex }],
+      });
+    } catch (switchError) {
+      // 4902 = chain not yet added to the wallet
+      if (switchError && switchError.code === 4902) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: chain.chainIdHex,
+              chainName: chain.label,
+              nativeCurrency: chain.nativeCurrency,
+              rpcUrls: chain.rpcUrls,
+              blockExplorerUrls: chain.blockExplorerUrls,
+            },
+          ],
+        });
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0xaa36a7" }],
+          params: [{ chainId: chain.chainIdHex }],
         });
-      } catch (switchError) {
+      } else {
         throw new Error(
-          "Failed to switch to Sepolia Devnet. Please switch manually in MetaMask."
+          `Failed to switch to ${chain.label}. Please switch manually in your wallet.`
         );
       }
     }
+  };
+
+  const handleEVMTransfer = async () => {
+    if (!window.ethereum) {
+      throw new Error(
+        "No EVM wallet found. Please install MetaMask or another injected wallet."
+      );
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    await ensureCorrectEvmNetwork(provider);
+
+    // Re-fetch the signer after a potential network switch.
+    const freshProvider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await freshProvider.getSigner();
 
     if (tokenAddress) {
       const erc20Abi = [
         "function transfer(address to, uint256 amount) returns (bool)",
       ];
       const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
-      const parsedAmount = ethers.parseUnits(amount, 18);
+      const parsedAmount = ethers.parseUnits(amount, resolvedDecimals);
       const tx = await tokenContract.transfer(recipient, parsedAmount);
       await tx.wait();
       return tx.hash;
     } else {
       const tx = await signer.sendTransaction({
         to: recipient,
-        value: ethers.parseEther(amount),
+        value: ethers.parseUnits(amount, chain.nativeCurrency.decimals),
       });
       await tx.wait();
       return tx.hash;
@@ -154,12 +387,9 @@ const UniversalSender = () => {
     e.preventDefault();
     setStatus("Initiating transfer...");
     try {
-      let txHash = "";
-      if (chain === "solana-devnet") {
-        txHash = await handleSolanaTransfer();
-      } else if (chain === "evm-sepolia") {
-        txHash = await handleEVMTransfer();
-      }
+      const txHash = isSolana
+        ? await handleSolanaTransfer()
+        : await handleEVMTransfer();
       setStatus(`Success! Transaction Hash: ${txHash}`);
     } catch (error) {
       console.error(error);
@@ -168,118 +398,157 @@ const UniversalSender = () => {
   };
 
   return (
-    <div className="App" style={{ maxWidth: "500px", margin: "50px auto" }}>
-      <h2>Universal Token Sender</h2>
+    <div className="App">
+      <div className="App-header">
+        <h1>Universal Token Sender</h1>
 
-      <div style={{ marginBottom: "20px", textAlign: "left" }}>
-        <label>
-          <strong>Select Chain:</strong>
-        </label>
-        <br />
-        <select
-          value={chain}
-          onChange={(e) => setChain(e.target.value)}
-          style={{ padding: "10px", width: "100%", marginTop: "5px" }}
+        <div style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}>
+          <label>
+            <strong>Select Chain</strong>
+          </label>
+          <br />
+          <select
+            value={chainKey}
+            onChange={(e) => setChainKey(e.target.value)}
+            style={{ padding: "10px", width: "100%", marginTop: "5px" }}
+          >
+            {CHAIN_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.chains.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+
+        {isSolana ? (
+          <div style={{ marginBottom: "20px" }}>
+            <WalletMultiButton />
+          </div>
+        ) : (
+          <p style={{ color: "#93c5fd", marginBottom: "20px" }}>
+            Uses your browser's injected wallet (MetaMask, Rabby, Coinbase
+            Wallet, Brave Wallet, etc.) — connect below via "Send".
+          </p>
+        )}
+
+        <form
+          onSubmit={handleTransfer}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "15px",
+            textAlign: "left",
+          }}
         >
-          <option value="solana-devnet">Solana (Devnet)</option>
-          <option value="evm-sepolia">Ethereum (Sepolia Devnet)</option>
-        </select>
+          <div>
+            <label>Recipient Address</label>
+            <input
+              type="text"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              required
+              style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+            />
+          </div>
+
+          <div>
+            <label>Token Contract / Mint (Optional)</label>
+            <input
+              type="text"
+              placeholder={`Leave blank for native ${
+                isSolana ? "SOL" : chain.nativeCurrency.symbol
+              }`}
+              value={tokenAddress}
+              onChange={(e) => setTokenAddress(e.target.value)}
+              style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+            />
+          </div>
+
+          {tokenAddress && (
+            <div>
+              <label>Token Decimals</label>
+              <input
+                type="number"
+                placeholder={String(defaultDecimals)}
+                value={decimals}
+                onChange={(e) => setDecimals(e.target.value)}
+                style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+              />
+            </div>
+          )}
+
+          <div>
+            <label>Amount</label>
+            <input
+              type="number"
+              step="any"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              padding: "15px",
+              backgroundColor: "#000",
+              color: "#fff",
+              cursor: "pointer",
+              border: "none",
+              borderRadius: "5px",
+              fontWeight: "bold",
+            }}
+          >
+            Send Tokens
+          </button>
+        </form>
+
+        {status && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "15px",
+              backgroundColor: "#f0f0f0",
+              borderRadius: "5px",
+              wordWrap: "break-word",
+              color: "#0f172a",
+            }}
+          >
+            {status}
+          </div>
+        )}
       </div>
-
-      {chain === "solana-devnet" && (
-        <div style={{ marginBottom: "20px" }}>
-          <WalletMultiButton />
-        </div>
-      )}
-
-      <form
-        onSubmit={handleTransfer}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "15px",
-          textAlign: "left",
-        }}
-      >
-        <div>
-          <label>Recipient Address</label>
-          <input
-            type="text"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            required
-            style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
-          />
-        </div>
-
-        <div>
-          <label>Token Contract / Mint (Optional)</label>
-          <input
-            type="text"
-            placeholder="Leave blank for Native SOL / ETH"
-            value={tokenAddress}
-            onChange={(e) => setTokenAddress(e.target.value)}
-            style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
-          />
-        </div>
-
-        <div>
-          <label>Amount</label>
-          <input
-            type="number"
-            step="any"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
-          />
-        </div>
-
-        <button
-          type="submit"
-          style={{
-            padding: "15px",
-            backgroundColor: "#000",
-            color: "#fff",
-            cursor: "pointer",
-            border: "none",
-            borderRadius: "5px",
-            fontWeight: "bold",
-          }}
-        >
-          Send Tokens
-        </button>
-      </form>
-
-      {status && (
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "15px",
-            backgroundColor: "#f0f0f0",
-            borderRadius: "5px",
-            wordWrap: "break-word",
-          }}
-        >
-          {status}
-        </div>
-      )}
     </div>
   );
 };
 
-// Renamed to Component1 per your request
 export default function Component1() {
-  const network = WalletAdapterNetwork.Devnet;
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  const [chainKey, setChainKey] = useState(DEFAULT_CHAIN_KEY);
+  const chain = CHAINS_BY_KEY[chainKey];
+
+  // Only relevant while a Solana chain is selected; re-keying the
+  // ConnectionProvider/WalletProvider on cluster change forces a clean
+  // reconnect instead of holding a stale endpoint.
+  const solanaEndpoint = useMemo(
+    () => clusterApiUrl(chain.type === "solana" ? chain.cluster : "devnet"),
+    [chain]
+  );
 
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
+  const handleSetChainKey = useCallback((key) => setChainKey(key), []);
+
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider key={solanaEndpoint} endpoint={solanaEndpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <UniversalSender />
+          <UniversalSender chainKey={chainKey} setChainKey={handleSetChainKey} />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
