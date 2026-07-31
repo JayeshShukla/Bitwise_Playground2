@@ -1,4 +1,4 @@
-/* src/Component2.css */
+/* src/styles.css */
 
 .App {
   text-align: center;
@@ -160,4 +160,9 @@ button:nth-child(2) {
   border-radius: 8px;
   text-align: left;
   font-size: 16px;
+}
+
+optgroup {
+  font-weight: bold;
+  color: #0f172a;
 }
