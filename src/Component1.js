@@ -18,6 +18,8 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
+  SYSVAR_RENT_PUBKEY,
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import {
@@ -25,10 +27,19 @@ import {
   createTransferInstruction,
   createAssociatedTokenAccountInstruction,
   getAccount,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
+
+// Anchor Imports — only used to encode instruction data (discriminator +
+// Borsh-serialized args) from a pasted IDL. Requires `@coral-xyz/anchor`
+// as a dependency (`npm install @coral-xyz/anchor`); its BorshInstructionCoder
+// supports both the legacy IDL shape (isMut/isSigner, sighash discriminator)
+// and the >=0.30 shape (writable/signer, embedded discriminator).
+import { BorshInstructionCoder, BN } from "@coral-xyz/anchor";
 
 // EVM Imports
 import { ethers } from "ethers";
@@ -583,6 +594,418 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
   );
 }
 
+// --- Generic Anchor arg parsing ------------------------------------------
+// Mirrors parseAbiParamValue, but for Borsh/Anchor types. IDL `type` fields
+// are either a primitive string ("u64", "publicKey", ...) or a wrapper
+// object ({vec:T}, {option:T}, {array:[T,size]}, {defined:...}). Defined
+// (struct/enum) types fall back to raw JSON — no recursive field-by-field
+// form, same tradeoff as the EVM "tuple" case above.
+function parseAnchorArgValue(type, rawValue) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : rawValue;
+
+  if (type && typeof type === "object") {
+    if (type.vec !== undefined) {
+      const items = value === "" || value === undefined ? [] : JSON.parse(value);
+      return items.map((item) => parseAnchorArgValue(type.vec, item));
+    }
+    if (type.option !== undefined) {
+      return value === "" || value === undefined ? null : parseAnchorArgValue(type.option, value);
+    }
+    if (type.array !== undefined) {
+      const items = JSON.parse(value);
+      return items.map((item) => parseAnchorArgValue(type.array[0], item));
+    }
+    // `defined` (struct/enum) types: user hands us JSON matching the shape.
+    return JSON.parse(value);
+  }
+
+  switch (type) {
+    case "publicKey":
+    case "pubkey":
+      return new PublicKey(value);
+    case "bool":
+      return value === "true" || value === true;
+    case "u8":
+    case "u16":
+    case "u32":
+    case "i8":
+    case "i16":
+    case "i32":
+      return Number(value);
+    case "u64":
+    case "i64":
+    case "u128":
+    case "i128":
+    case "u256":
+    case "i256":
+      return new BN(value);
+    case "bytes":
+      return Buffer.from(JSON.parse(value));
+    case "string":
+    default:
+      return value;
+  }
+}
+
+function anchorTypeLabel(type) {
+  if (typeof type === "string") return type;
+  if (!type || typeof type !== "object") return String(type);
+  if (type.vec !== undefined) return `vec<${anchorTypeLabel(type.vec)}>`;
+  if (type.option !== undefined) return `option<${anchorTypeLabel(type.option)}>`;
+  if (type.array !== undefined) return `array<${anchorTypeLabel(type.array[0])}, ${type.array[1]}>`;
+  if (type.defined !== undefined) {
+    return `defined<${typeof type.defined === "string" ? type.defined : type.defined.name}>`;
+  }
+  return JSON.stringify(type);
+}
+
+// IDL account entries use isMut/isSigner (legacy) or writable/signer (>=0.30).
+function normalizeAnchorAccount(acc) {
+  return {
+    name: acc.name,
+    isSigner: acc.isSigner ?? acc.signer ?? false,
+    isWritable: acc.isMut ?? acc.writable ?? false,
+  };
+}
+
+// Best-effort defaults for well-known account names, so the common case
+// (system program, token program, the connected wallet as payer/authority)
+// doesn't need to be typed in by hand every time.
+function defaultAnchorAccountValue(name, walletPublicKey) {
+  const key = name.toLowerCase().replace(/_/g, "");
+  if (key === "systemprogram") return SystemProgram.programId.toBase58();
+  if (key === "tokenprogram") return TOKEN_PROGRAM_ID.toBase58();
+  if (key === "associatedtokenprogram") return ASSOCIATED_TOKEN_PROGRAM_ID.toBase58();
+  if (key === "rent" || key === "rentsysvar") return SYSVAR_RENT_PUBKEY.toBase58();
+  if (walletPublicKey && (key.includes("payer") || key.includes("signer") || key === "authority" || key === "user" || key === "owner")) {
+    return walletPublicKey.toBase58();
+  }
+  return "";
+}
+
+// --- Generic "call any instruction" panel (Solana / Anchor only) -------
+// Paste a program ID + Anchor IDL, pick an instruction, fill in its args
+// and accounts. Every account marked as a signer other than the connected
+// wallet will fail to sign — this tool can't hold extra keypairs, only the
+// wallet-adapter wallet.
+function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
+  const [programIdInput, setProgramIdInput] = useState("");
+  const [idlJson, setIdlJson] = useState("");
+  const [selectedIxName, setSelectedIxName] = useState("");
+  const [argValues, setArgValues] = useState([]);
+  const [accountValues, setAccountValues] = useState([]);
+  const [status, setStatus] = useState("");
+  const [result, setResult] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { idl, idlError } = useMemo(() => {
+    if (!idlJson.trim()) return { idl: null, idlError: "" };
+    try {
+      const parsed = JSON.parse(idlJson);
+      if (!Array.isArray(parsed.instructions)) {
+        throw new Error("No `instructions` array found — is this a valid Anchor IDL?");
+      }
+      return { idl: parsed, idlError: "" };
+    } catch (e) {
+      return { idl: null, idlError: `Invalid IDL JSON: ${e.message}` };
+    }
+  }, [idlJson]);
+
+  // Anchor IDLs (>=0.30) embed the program address; auto-fill it once.
+  useEffect(() => {
+    if (idl?.address && !programIdInput) {
+      setProgramIdInput(idl.address);
+    }
+  }, [idl, programIdInput]);
+
+  const instructions = useMemo(() => idl?.instructions ?? [], [idl]);
+
+  // Keep the selected instruction valid whenever the IDL changes.
+  useEffect(() => {
+    if (instructions.length === 0) {
+      setSelectedIxName("");
+      return;
+    }
+    if (!instructions.some((ix) => ix.name === selectedIxName)) {
+      setSelectedIxName(instructions[0].name);
+    }
+  }, [instructions, selectedIxName]);
+
+  const selectedIx = instructions.find((ix) => ix.name === selectedIxName);
+  const selectedAccounts = useMemo(
+    () => (selectedIx ? selectedIx.accounts.map(normalizeAnchorAccount) : []),
+    [selectedIx]
+  );
+
+  // Reset args/accounts whenever the selected instruction changes shape.
+  useEffect(() => {
+    setArgValues(selectedIx ? selectedIx.args.map(() => "") : []);
+    setAccountValues(selectedAccounts.map((acc) => defaultAnchorAccountValue(acc.name, publicKey)));
+    setResult("");
+  }, [selectedIx, selectedAccounts, publicKey]);
+
+  const handleArgChange = (index, value) => {
+    setArgValues((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleAccountChange = (index, value) => {
+    setAccountValues((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const buildTransaction = () => {
+    if (!publicKey) throw new Error("Connect a Solana wallet first.");
+    if (!idl) throw new Error("Paste a valid Anchor IDL first.");
+    if (!selectedIx) throw new Error("Select an instruction.");
+    if (!programIdInput.trim()) throw new Error("Enter the program ID.");
+
+    const programId = new PublicKey(programIdInput.trim());
+    const coder = new BorshInstructionCoder(idl);
+
+    const argsObject = {};
+    selectedIx.args.forEach((arg, i) => {
+      argsObject[arg.name] = parseAnchorArgValue(arg.type, argValues[i]);
+    });
+    const data = coder.encode(selectedIx.name, argsObject);
+
+    const keys = selectedAccounts.map((acc, i) => {
+      const raw = (accountValues[i] || "").trim();
+      if (!raw) throw new Error(`Missing address for account "${acc.name}".`);
+      return {
+        pubkey: new PublicKey(raw),
+        isSigner: acc.isSigner,
+        isWritable: acc.isWritable,
+      };
+    });
+
+    const instruction = new TransactionInstruction({ keys, programId, data });
+    const transaction = new Transaction().add(instruction);
+    transaction.feePayer = publicKey;
+    return transaction;
+  };
+
+  const handleSimulate = async (e) => {
+    e.preventDefault();
+    setResult("");
+    setIsLoading(true);
+    setStatus("Simulating...");
+    try {
+      const transaction = buildTransaction();
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      const sim = await connection.simulateTransaction(transaction);
+      setResult(stringifyResult(sim.value));
+      setStatus(sim.value.err ? `Simulation failed: ${JSON.stringify(sim.value.err)}` : "Simulation succeeded — see logs below.");
+    } catch (error) {
+      console.error(error);
+      setStatus(`Failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    setResult("");
+    setIsLoading(true);
+    setStatus("Sending transaction...");
+    try {
+      const transaction = buildTransaction();
+      const signature = await sendTransaction(transaction, connection);
+      setStatus(`Transaction sent: ${signature} — confirming...`);
+      const latestBlockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      });
+      setResult(signature);
+      setStatus(`Confirmed: ${signature}`);
+    } catch (error) {
+      console.error(error);
+      setStatus(`Failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div style={cardStyle}>
+      <h2 style={{ marginBottom: 4 }}>Call Any Program Instruction</h2>
+      <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
+        Solana / Anchor only — paste a program ID and its IDL, pick an instruction, fill
+        in the args and accounts. Only the connected wallet can sign; any other account
+        marked as a signer will make the transaction fail (this tool can't hold extra
+        keypairs).
+      </p>
+
+      <div style={{ marginBottom: 15 }}>
+        <label>Program ID</label>
+        <input
+          type="text"
+          placeholder="Program public key"
+          value={programIdInput}
+          onChange={(e) => setProgramIdInput(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={{ marginBottom: 15 }}>
+        <label>Anchor IDL (JSON)</label>
+        <textarea
+          rows={6}
+          placeholder='{"instructions":[{"name":"buyTicket","accounts":[...],"args":[...]}], ...}'
+          value={idlJson}
+          onChange={(e) => setIdlJson(e.target.value)}
+          style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
+        />
+        {idlError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{idlError}</div>}
+      </div>
+
+      {instructions.length > 0 && (
+        <>
+          <div style={{ marginBottom: 15 }}>
+            <label>Instruction</label>
+            <select
+              value={selectedIxName}
+              onChange={(e) => setSelectedIxName(e.target.value)}
+              style={inputStyle}
+            >
+              {instructions.map((ix) => (
+                <option key={ix.name} value={ix.name}>
+                  {ix.name} ({ix.args.length} args, {ix.accounts.length} accounts)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <form style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+            {selectedAccounts.length > 0 && (
+              <div>
+                <label>
+                  <strong>Accounts</strong>
+                </label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                  {selectedAccounts.map((acc, i) => (
+                    <div key={`${selectedIxName}-acc-${i}`}>
+                      <label>
+                        {acc.name}{" "}
+                        <span style={{ color: "#93c5fd" }}>
+                          ({acc.isSigner ? "signer" : "non-signer"}, {acc.isWritable ? "writable" : "readonly"})
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Account public key"
+                        value={accountValues[i] ?? ""}
+                        onChange={(e) => handleAccountChange(i, e.target.value)}
+                        style={inputStyle}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedIx &&
+              selectedIx.args.map((arg, i) => (
+                <div key={`${selectedIxName}-arg-${i}`}>
+                  <label>
+                    {arg.name} <span style={{ color: "#93c5fd" }}>({anchorTypeLabel(arg.type)})</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={anchorTypeLabel(arg.type)}
+                    value={argValues[i] ?? ""}
+                    onChange={(e) => handleArgChange(i, e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              ))}
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                disabled={isLoading || !selectedIx}
+                onClick={handleSimulate}
+                style={{
+                  flex: 1,
+                  padding: "15px",
+                  backgroundColor: "#1d4ed8",
+                  color: "#fff",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  opacity: isLoading ? 0.6 : 1,
+                  border: "none",
+                  borderRadius: "5px",
+                  fontWeight: "bold",
+                }}
+              >
+                {isLoading ? "Working..." : "Simulate"}
+              </button>
+              <button
+                type="button"
+                disabled={isLoading || !selectedIx}
+                onClick={handleSend}
+                style={{
+                  flex: 1,
+                  padding: "15px",
+                  backgroundColor: "#000",
+                  color: "#fff",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  opacity: isLoading ? 0.6 : 1,
+                  border: "none",
+                  borderRadius: "5px",
+                  fontWeight: "bold",
+                }}
+              >
+                {isLoading ? "Working..." : "Send Transaction"}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
+
+      {status && (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 15,
+            backgroundColor: "#f0f0f0",
+            borderRadius: 5,
+            wordWrap: "break-word",
+            color: "#0f172a",
+          }}
+        >
+          {status}
+        </div>
+      )}
+
+      {result && (
+        <pre
+          style={{
+            marginTop: 12,
+            padding: 15,
+            backgroundColor: "#0f172a",
+            color: "#e2e8f0",
+            borderRadius: 5,
+            overflowX: "auto",
+            fontSize: 12,
+          }}
+        >
+          {result}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 const UniversalSender = ({ chainKey, setChainKey }) => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -944,6 +1367,14 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
             evmProviders={evmProviders}
             selectedEvmRdns={selectedEvmRdns}
             ensureCorrectEvmNetwork={ensureCorrectEvmNetwork}
+          />
+        )}
+
+        {isSolana && (
+          <SolanaProgramInteraction
+            connection={connection}
+            publicKey={publicKey}
+            sendTransaction={sendTransaction}
           />
         )}
       </div>
