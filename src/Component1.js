@@ -361,8 +361,7 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
     if (!contractFunctions.some((f) => f.signature === selectedSignature)) {
       setSelectedSignature(contractFunctions[0].signature);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contractFunctions]);
+  }, [contractFunctions, selectedSignature]);
 
   const selectedFunction = contractFunctions.find((f) => f.signature === selectedSignature);
 
