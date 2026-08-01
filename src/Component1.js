@@ -259,6 +259,331 @@ function useEvmProviders() {
   return providers;
 }
 
+// --- Generic ABI param parsing ------------------------------------------
+// Turns whatever the user typed into a value ethers can encode for a given
+// Solidity type. Deliberately permissive (this is a debug/ops tool, not a
+// form with strict UX) — numeric strings are left as strings/handled by
+// ethers itself, arrays/tuples accept either JSON or comma-separated text.
+function parseAbiParamValue(type, rawValue) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : rawValue;
+
+  if (type.endsWith("[]")) {
+    const elementType = type.slice(0, -2);
+    if (value === "" || value === undefined) return [];
+    let items;
+    try {
+      const parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) throw new Error("not an array");
+      items = parsed;
+    } catch {
+      items = value.split(",").map((v) => v.trim());
+    }
+    return items.map((item) => parseAbiParamValue(elementType, item));
+  }
+
+  if (type.startsWith("tuple")) {
+    if (value === "" || value === undefined) {
+      throw new Error(`Tuple parameter requires JSON input, e.g. ["0xabc...", 123]`);
+    }
+    return JSON.parse(value);
+  }
+
+  if (type === "bool") {
+    if (typeof value === "boolean") return value;
+    return value === "true" || value === "1";
+  }
+
+  // uint*, int*, address, bytes*, string: pass the trimmed string straight
+  // through — ethers parses numeric strings into BigInt for uint/int itself.
+  return value;
+}
+
+function stringifyResult(value) {
+  return JSON.stringify(
+    value,
+    (_key, v) => (typeof v === "bigint" ? v.toString() : v),
+    2
+  );
+}
+
+const inputStyle = { width: "100%", padding: "10px", boxSizing: "border-box" };
+const cardStyle = {
+  marginTop: 40,
+  paddingTop: 24,
+  borderTop: "1px solid #475569",
+  textAlign: "left",
+};
+
+// --- Generic "call any contract function" panel (EVM only) -------------
+// Paste an address + ABI, pick a function, fill in its args. View/pure
+// functions are called as reads; everything else is sent as a transaction
+// through whichever EVM wallet is currently selected above.
+function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorrectEvmNetwork }) {
+  const [contractAddress, setContractAddress] = useState("");
+  const [abiJson, setAbiJson] = useState("");
+  const [selectedSignature, setSelectedSignature] = useState("");
+  const [functionArgs, setFunctionArgs] = useState([]);
+  const [payableValue, setPayableValue] = useState("");
+  const [status, setStatus] = useState("");
+  const [result, setResult] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { parsedAbi, abiError } = useMemo(() => {
+    if (!abiJson.trim()) return { parsedAbi: null, abiError: "" };
+    try {
+      const parsed = JSON.parse(abiJson);
+      // Accept either a raw ABI array, or an Etherscan-style `{ "abi": [...] }` blob.
+      const abi = Array.isArray(parsed) ? parsed : parsed.abi;
+      if (!Array.isArray(abi)) throw new Error("No ABI array found in JSON");
+      return { parsedAbi: abi, abiError: "" };
+    } catch (e) {
+      return { parsedAbi: null, abiError: `Invalid ABI JSON: ${e.message}` };
+    }
+  }, [abiJson]);
+
+  const contractFunctions = useMemo(() => {
+    if (!parsedAbi) return [];
+    return parsedAbi
+      .filter((item) => item.type === "function")
+      .map((item) => ({
+        ...item,
+        inputs: item.inputs || [],
+        signature: `${item.name}(${(item.inputs || []).map((inp) => inp.type).join(",")})`,
+      }));
+  }, [parsedAbi]);
+
+  // Keep the selected function valid whenever the ABI changes.
+  useEffect(() => {
+    if (contractFunctions.length === 0) {
+      setSelectedSignature("");
+      return;
+    }
+    if (!contractFunctions.some((f) => f.signature === selectedSignature)) {
+      setSelectedSignature(contractFunctions[0].signature);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contractFunctions]);
+
+  const selectedFunction = contractFunctions.find((f) => f.signature === selectedSignature);
+
+  // Reset the arg inputs whenever the selected function changes shape.
+  useEffect(() => {
+    setFunctionArgs(selectedFunction ? selectedFunction.inputs.map(() => "") : []);
+    setPayableValue("");
+    setResult("");
+  }, [selectedFunction]);
+
+  const isRead = selectedFunction && (selectedFunction.stateMutability === "view" || selectedFunction.stateMutability === "pure");
+  const isPayable = selectedFunction && selectedFunction.stateMutability === "payable";
+
+  const handleArgChange = (index, value) => {
+    setFunctionArgs((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleCall = async (e) => {
+    e.preventDefault();
+    if (!selectedFunction) return;
+
+    setResult("");
+    setIsLoading(true);
+    setStatus(isRead ? "Reading..." : "Preparing transaction...");
+
+    try {
+      if (!ethers.isAddress(contractAddress.trim())) {
+        throw new Error("Enter a valid contract address.");
+      }
+
+      const selected = evmProviders.find((p) => p.info.rdns === selectedEvmRdns);
+      const eip1193Provider = selected ? selected.provider : window.ethereum;
+      if (!eip1193Provider) {
+        throw new Error("No EVM wallet found. Please install MetaMask or another injected wallet.");
+      }
+      if (evmProviders.length > 1 && !selected) {
+        throw new Error("Please select which EVM wallet to use above.");
+      }
+
+      const browserProvider = new ethers.BrowserProvider(eip1193Provider);
+      await browserProvider.send("eth_requestAccounts", []);
+      await ensureCorrectEvmNetwork(eip1193Provider, browserProvider);
+
+      // Re-fetch the signer after a potential network switch.
+      const freshProvider = new ethers.BrowserProvider(eip1193Provider);
+      const signer = await freshProvider.getSigner();
+
+      const contract = new ethers.Contract(contractAddress.trim(), parsedAbi, signer);
+      const args = selectedFunction.inputs.map((input, i) =>
+        parseAbiParamValue(input.type, functionArgs[i])
+      );
+
+      const overrides = {};
+      if (isPayable && payableValue) {
+        overrides.value = ethers.parseUnits(payableValue, chain.nativeCurrency.decimals);
+      }
+
+      const fn = contract.getFunction(selectedFunction.signature);
+
+      if (isRead) {
+        const value = await fn(...args, ...(Object.keys(overrides).length ? [overrides] : []));
+        setResult(stringifyResult(value));
+        setStatus("Read complete.");
+      } else {
+        const tx = await fn(...args, overrides);
+        setStatus(`Transaction sent: ${tx.hash} — waiting for confirmation...`);
+        const receipt = await tx.wait();
+        setResult(stringifyResult(receipt));
+        setStatus(`Confirmed in block ${receipt.blockNumber}.`);
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus(`Failed: ${error.reason || error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div style={cardStyle}>
+      <h2 style={{ marginBottom: 4 }}>Call Any Contract Function</h2>
+      <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
+        EVM only — paste a contract address and its ABI, pick a function, fill in the
+        arguments. View/pure functions are read directly; everything else is sent as a
+        transaction from the EVM wallet selected above, on {chain.label}.
+      </p>
+
+      <div style={{ marginBottom: 15 }}>
+        <label>Contract Address</label>
+        <input
+          type="text"
+          placeholder="0x..."
+          value={contractAddress}
+          onChange={(e) => setContractAddress(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={{ marginBottom: 15 }}>
+        <label>Contract ABI (JSON array, or an Etherscan-style {"{ \"abi\": [...] }"} blob)</label>
+        <textarea
+          rows={6}
+          placeholder='[{"type":"function","name":"transfer","inputs":[...],"stateMutability":"nonpayable",...}]'
+          value={abiJson}
+          onChange={(e) => setAbiJson(e.target.value)}
+          style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
+        />
+        {abiError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{abiError}</div>}
+      </div>
+
+      {contractFunctions.length > 0 && (
+        <>
+          <div style={{ marginBottom: 15 }}>
+            <label>Function</label>
+            <select
+              value={selectedSignature}
+              onChange={(e) => setSelectedSignature(e.target.value)}
+              style={inputStyle}
+            >
+              {contractFunctions.map((f) => (
+                <option key={f.signature} value={f.signature}>
+                  {f.signature} ({f.stateMutability})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <form onSubmit={handleCall} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+            {selectedFunction &&
+              selectedFunction.inputs.map((input, i) => (
+                <div key={`${selectedFunction.signature}-${i}`}>
+                  <label>
+                    {input.name || `arg${i}`} <span style={{ color: "#93c5fd" }}>({input.type})</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={
+                      input.type.endsWith("[]")
+                        ? "comma-separated, or JSON array"
+                        : input.type.startsWith("tuple")
+                        ? "JSON array/object matching the tuple"
+                        : input.type
+                    }
+                    value={functionArgs[i] ?? ""}
+                    onChange={(e) => handleArgChange(i, e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              ))}
+
+            {isPayable && (
+              <div>
+                <label>Value to send ({chain.nativeCurrency.symbol})</label>
+                <input
+                  type="text"
+                  placeholder="0.0"
+                  value={payableValue}
+                  onChange={(e) => setPayableValue(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading || !selectedFunction}
+              style={{
+                padding: "15px",
+                backgroundColor: isRead ? "#1d4ed8" : "#000",
+                color: "#fff",
+                cursor: isLoading ? "not-allowed" : "pointer",
+                opacity: isLoading ? 0.6 : 1,
+                border: "none",
+                borderRadius: "5px",
+                fontWeight: "bold",
+              }}
+            >
+              {isLoading ? "Working..." : isRead ? "Read" : "Write (Send Transaction)"}
+            </button>
+          </form>
+        </>
+      )}
+
+      {status && (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 15,
+            backgroundColor: "#f0f0f0",
+            borderRadius: 5,
+            wordWrap: "break-word",
+            color: "#0f172a",
+          }}
+        >
+          {status}
+        </div>
+      )}
+
+      {result && (
+        <pre
+          style={{
+            marginTop: 12,
+            padding: 15,
+            backgroundColor: "#0f172a",
+            color: "#e2e8f0",
+            borderRadius: 5,
+            overflowX: "auto",
+            fontSize: 12,
+          }}
+        >
+          {result}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 const UniversalSender = ({ chainKey, setChainKey }) => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -612,6 +937,15 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
           >
             {status}
           </div>
+        )}
+
+        {!isSolana && (
+          <ContractInteraction
+            chain={chain}
+            evmProviders={evmProviders}
+            selectedEvmRdns={selectedEvmRdns}
+            ensureCorrectEvmNetwork={ensureCorrectEvmNetwork}
+          />
         )}
       </div>
     </div>
