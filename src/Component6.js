@@ -2484,7 +2484,6 @@ let y = x.clone().into_iter() // <@ clone does not let original x to be consumed
 
 const Component6 = () => {
   const [activeView, setActiveView] = useState("grid");
-  const [expandedTopic, setExpandedTopic] = useState(null);
 
   return (
     <div className="rust-lookup-container">
