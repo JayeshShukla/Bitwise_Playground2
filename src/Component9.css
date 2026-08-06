@@ -331,6 +331,7 @@
 
 .c9-bal-chip.native { border-color: #2a3060; }
 .c9-bal-chip.token { border-color: #1e3040; }
+.c9-bal-chip.token.err { border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.06); }
 
 .c9-bal-label {
   color: #777;

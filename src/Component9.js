@@ -105,7 +105,18 @@ async function fetchSolana(entry) {
     try {
       const mint          = new PublicKey(ta.address);
       const tokenProgramId = await resolveTokenProgramId(connection, mint);
-      const ata            = await getAssociatedTokenAddress(mint, pubkey, offCurve, tokenProgramId);
+      let ata;
+      try {
+        ata = await getAssociatedTokenAddress(mint, pubkey, offCurve, tokenProgramId);
+      } catch (ataErr) {
+        // spl-token's TokenOwnerOffCurveError carries an empty message, so
+        // without this the card would just show a blank "⚠" with no clue
+        // what went wrong.
+        if (ataErr.name === "TokenOwnerOffCurveError") {
+          throw new Error("Owner is a PDA (off-curve address) — check the \"Owner is a PDA / off-curve\" box for this entry.");
+        }
+        throw ataErr;
+      }
 
       let balance = 0, balanceRaw = "0", decimals = null;
       try {
@@ -225,7 +236,7 @@ function AddressCard({ entry, balanceData, onDelete, onRename, onRefresh }) {
               )}
             </div>
             {(bd.tokenBalances || []).map((tb, i) => (
-              <div className="c9-bal-chip token" key={i}>
+              <div className={`c9-bal-chip token ${tb.error ? "err" : ""}`} key={i}>
                 <span className="c9-bal-label">Token</span>
                 <span className="c9-bal-value">{fmt(tb.balance)}</span>
                 <span className="c9-bal-symbol">{tb.symbol}</span>
@@ -243,6 +254,9 @@ function AddressCard({ entry, balanceData, onDelete, onRename, onRefresh }) {
               </div>
             ))}
           </div>
+          {(bd.tokenBalances || []).filter((tb) => tb.error).map((tb, i) => (
+            <div className="c9-status-error" key={"err"+i}>⚠ {tb.symbol}: {tb.error}</div>
+          ))}
           <div className="c9-last-updated">
             Last updated: {bd.updatedAt}
             <button className="c9-refresh-btn" onClick={() => onRefresh(entry.id)}>↻ Refresh</button>
