@@ -53,6 +53,12 @@ const Navbar = ({ setActiveComponent }) => {
       >
         EVM bytes32
       </button>
+      <button
+        className="navbar-button"
+        onClick={() => setActiveComponent("component9")}
+      >
+        Token Watcher
+      </button>
     </nav>
   );
 };

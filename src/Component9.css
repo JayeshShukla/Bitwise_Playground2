@@ -1,0 +1,341 @@
+/* src/Component9.css */
+.c9-wrapper {
+  min-height: 100vh;
+  background: #0a0a0f;
+  color: #e0e0e0;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 28px 20px;
+  box-sizing: border-box;
+}
+
+.c9-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px 0;
+}
+
+.c9-subtitle {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 28px;
+}
+
+/* ADD FORM */
+.c9-add-card {
+  background: #141420;
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+}
+
+.c9-add-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ccc;
+  margin: 0 0 16px 0;
+}
+
+.c9-add-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.c9-add-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.c9-add-group label {
+  font-size: 0.78rem;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.c9-input,
+.c9-select {
+  background: #1e1e30;
+  border: 1px solid #333355;
+  color: #fff;
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.c9-input:focus,
+.c9-select:focus {
+  border-color: #7c5cfc;
+}
+
+.c9-select option {
+  background: #1e1e30;
+}
+
+.c9-btn-add {
+  background: linear-gradient(135deg, #7c5cfc, #4fd1c5);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  align-self: flex-end;
+}
+
+.c9-btn-add:hover { opacity: 0.88; }
+.c9-btn-add:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.c9-error-msg {
+  margin-top: 10px;
+  font-size: 0.83rem;
+  color: #f87171;
+}
+
+/* CHAIN SECTIONS */
+.c9-section {
+  margin-bottom: 32px;
+}
+
+.c9-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.c9-chain-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.05em;
+}
+
+.c9-chain-badge.eth {
+  background: rgba(98, 126, 234, 0.18);
+  color: #a8b4f8;
+  border: 1px solid rgba(98, 126, 234, 0.35);
+}
+
+.c9-chain-badge.sol {
+  background: rgba(20, 241, 149, 0.12);
+  color: #14f195;
+  border: 1px solid rgba(20, 241, 149, 0.3);
+}
+
+.c9-section-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ddd;
+}
+
+.c9-count-chip {
+  font-size: 0.75rem;
+  background: #1e1e30;
+  color: #888;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid #2a2a40;
+}
+
+/* ADDRESS CARDS */
+.c9-addr-card {
+  background: #111120;
+  border: 1px solid #1e1e34;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+
+.c9-addr-card:hover { border-color: #333355; }
+
+.c9-addr-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.c9-addr-name-display {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.c9-addr-name-display:hover .c9-edit-icon { opacity: 1; }
+
+.c9-edit-icon {
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  font-size: 0.8rem;
+}
+
+.c9-name-input {
+  background: #1e1e30;
+  border: 1px solid #7c5cfc;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  outline: none;
+  width: 180px;
+}
+
+.c9-addr-text {
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  color: #666;
+  word-break: break-all;
+}
+
+.c9-copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: #555;
+  transition: color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.c9-copy-btn:hover { color: #aaa; background: #1e1e30; }
+.c9-copy-btn.copied { color: #4fd1c5; }
+
+.c9-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: #55334a;
+  transition: color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.c9-del-btn:hover { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+
+/* BALANCES */
+.c9-balances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.c9-bal-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #18182a;
+  border: 1px solid #222238;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+.c9-bal-chip.native { border-color: #2a3060; }
+.c9-bal-chip.token { border-color: #1e3040; }
+
+.c9-bal-label {
+  color: #777;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.c9-bal-value {
+  color: #e0e0e0;
+  font-weight: 700;
+  font-family: "Courier New", monospace;
+  font-size: 0.82rem;
+}
+
+.c9-bal-symbol { color: #666; font-size: 0.72rem; }
+
+.c9-status-loading {
+  font-size: 0.8rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.c9-status-error { font-size: 0.8rem; color: #f87171; margin-top: 10px; }
+
+.c9-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #333;
+  border-top-color: #7c5cfc;
+  border-radius: 50%;
+  animation: c9-spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes c9-spin { to { transform: rotate(360deg); } }
+
+.c9-last-updated { font-size: 0.72rem; color: #444; margin-top: 8px; }
+
+.c9-refresh-btn {
+  background: none;
+  border: 1px solid #222238;
+  color: #555;
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.c9-refresh-btn:hover { color: #aaa; border-color: #444; }
+
+.c9-empty-state {
+  text-align: center;
+  color: #444;
+  font-size: 0.9rem;
+  padding: 40px 0;
+  border: 1px dashed #1e1e30;
+  border-radius: 10px;
+}
+
+.c9-token-addr-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.c9-token-addr-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #888;
+  font-family: "Courier New", monospace;
+}
