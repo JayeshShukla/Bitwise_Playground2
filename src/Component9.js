@@ -10,13 +10,18 @@ const ALCHEMY_POLY_KEY = process.env.REACT_APP_ALCHEMY_POLYGON_KEY      || "";
 const ALCHEMY_BASE_KEY = process.env.REACT_APP_ALCHEMY_BASE_KEY         || "";
 
 const EVM_CHAINS = [
-  { id: "ethereum", label: "Ethereum",         symbol: "ETH",   rpc: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`      },
-  { id: "polygon",  label: "Polygon",          symbol: "MATIC", rpc: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_POLY_KEY}` },
-  { id: "base",     label: "Base",             symbol: "ETH",   rpc: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}`    },
-  { id: "sepolia",  label: "Sepolia (testnet)", symbol: "ETH",  rpc: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`     },
+  { id: "ethereum",    label: "Ethereum",                    symbol: "ETH",   rpc: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`   },
+  { id: "polygon",     label: "Polygon",                     symbol: "MATIC", rpc: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_POLY_KEY}` },
+  { id: "base",        label: "Base",                        symbol: "ETH",   rpc: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}` },
+  { id: "sepolia",     label: "Ethereum Sepolia (testnet)",  symbol: "ETH",   rpc: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`   },
+  { id: "baseSepolia", label: "Base Sepolia (testnet)",      symbol: "ETH",   rpc: `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}` },
 ];
 
-const SOL_RPC          = `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}`;
+const SOLANA_CHAINS = [
+  { id: "solana",       label: "Solana",        rpc: `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}` },
+  { id: "solanaDevnet", label: "Solana Devnet", rpc: `https://solana-devnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}`  },
+];
+const isSolanaChain = (id) => SOLANA_CHAINS.some((c) => c.id === id);
 const STORAGE_KEY      = "c9_watchlist_v2";
 const REFRESH_INTERVAL = 15 * 60 * 1000;
 
@@ -62,7 +67,9 @@ async function fetchEVM(entry) {
 }
 
 async function fetchSolana(entry) {
-  const connection = new Connection(SOL_RPC, "confirmed");
+  const chain = SOLANA_CHAINS.find((c) => c.id === entry.chain);
+  if (!chain) throw new Error("Unknown chain: " + entry.chain);
+  const connection = new Connection(chain.rpc, "confirmed");
   const pubkey     = new PublicKey(entry.address);
   const lamports   = await connection.getBalance(pubkey);
   const native     = lamports / 1e9;
@@ -210,7 +217,7 @@ const Component9 = () => {
   const fetchEntry = useCallback(async (entry) => {
     setBalanceData((prev) => ({ ...prev, [entry.id]: { ...prev[entry.id], status: "loading" } }));
     try {
-      const data = entry.chain === "solana" ? await fetchSolana(entry) : await fetchEVM(entry);
+      const data = isSolanaChain(entry.chain) ? await fetchSolana(entry) : await fetchEVM(entry);
       setBalanceData((prev) => ({ ...prev, [entry.id]: { ...data, status: "ok", updatedAt: nowStr() } }));
     } catch (e) {
       setBalanceData((prev) => ({ ...prev, [entry.id]: { status: "error", error: e.message } }));
@@ -233,7 +240,7 @@ const Component9 = () => {
     setAddError("");
     const addr = addrInput.trim();
     if (!addr) return setAddError("Address cannot be empty.");
-    if (chainInput === "solana") {
+    if (isSolanaChain(chainInput)) {
       try { new PublicKey(addr); } catch { return setAddError("Invalid Solana address."); }
     } else {
       if (!ethers.isAddress(addr)) return setAddError("Invalid EVM address.");
@@ -253,7 +260,7 @@ const Component9 = () => {
   const handleRename  = (id, name) => setEntries((prev) => prev.map((e) => e.id === id ? { ...e, name } : e));
   const handleRefresh = (id) => { const e = entries.find((x) => x.id === id); if (e) fetchEntry(e); };
 
-  const solEntries = entries.filter((e) => e.chain === "solana");
+  const solByChain = SOLANA_CHAINS.reduce((acc, c) => { acc[c.id] = entries.filter((e) => e.chain === c.id); return acc; }, {});
   const evmByChain = EVM_CHAINS.reduce((acc, c) => { acc[c.id] = entries.filter((e) => e.chain === c.id); return acc; }, {});
 
   return (
@@ -268,12 +275,12 @@ const Component9 = () => {
             <label>Chain</label>
             <select className="c9-select" value={chainInput} onChange={(e) => setChainInput(e.target.value)}>
               {EVM_CHAINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-              <option value="solana">Solana</option>
+              {SOLANA_CHAINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>
           <div className="c9-add-group" style={{flex:2,minWidth:260}}>
-            <label>{chainInput==="solana" ? "Wallet Address (Pubkey)" : "EVM Wallet Address"}</label>
-            <input className="c9-input" placeholder={chainInput==="solana"?"Solana pubkey…":"0x…"}
+            <label>{isSolanaChain(chainInput) ? "Wallet Address (Pubkey)" : "EVM Wallet Address"}</label>
+            <input className="c9-input" placeholder={isSolanaChain(chainInput)?"Solana pubkey…":"0x…"}
               value={addrInput} onChange={(e) => setAddrInput(e.target.value)} />
           </div>
           <div className="c9-add-group" style={{maxWidth:180}}>
@@ -281,11 +288,11 @@ const Component9 = () => {
             <input className="c9-input" placeholder="e.g. My Wallet" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
           </div>
           <div className="c9-add-group" style={{flex:2,minWidth:220}}>
-            <label>{chainInput==="solana"?"Mint address(es)":"Token contract(s)"}{" "}
+            <label>{isSolanaChain(chainInput)?"Mint address(es)":"Token contract(s)"}{" "}
               <span style={{color:"#555",fontWeight:400,textTransform:"none"}}>(comma-separated, optional)</span>
             </label>
             <input className="c9-input"
-              placeholder={chainInput==="solana"?"MintPubkey1, MintPubkey2…":"0xTokenA, 0xTokenB…"}
+              placeholder={isSolanaChain(chainInput)?"MintPubkey1, MintPubkey2…":"0xTokenA, 0xTokenB…"}
               value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} />
           </div>
           <button className="c9-btn-add" onClick={handleAdd}>Add</button>
@@ -311,19 +318,23 @@ const Component9 = () => {
         );
       })}
 
-      {solEntries.length > 0 && (
-        <div className="c9-section">
-          <div className="c9-section-header">
-            <span className="c9-chain-badge sol">SOLANA</span>
-            <span className="c9-section-label">Solana Addresses</span>
-            <span className="c9-count-chip">{solEntries.length}</span>
+      {SOLANA_CHAINS.map((c) => {
+        const list = solByChain[c.id] || [];
+        if (!list.length) return null;
+        return (
+          <div className="c9-section" key={c.id}>
+            <div className="c9-section-header">
+              <span className="c9-chain-badge sol">{c.label.toUpperCase()}</span>
+              <span className="c9-section-label">{c.label} Addresses</span>
+              <span className="c9-count-chip">{list.length}</span>
+            </div>
+            {list.map((entry) => (
+              <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
+                onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
+            ))}
           </div>
-          {solEntries.map((entry) => (
-            <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
-              onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
-          ))}
-        </div>
-      )}
+        );
+      })}
 
       {entries.length === 0 && (
         <div className="c9-empty-state">No addresses added yet. Use the form above to start tracking.</div>
