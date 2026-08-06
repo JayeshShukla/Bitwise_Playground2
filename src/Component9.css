@@ -114,6 +114,7 @@
 .c9-section-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -124,6 +125,7 @@
   padding: 3px 10px;
   border-radius: 99px;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .c9-chain-badge.eth {
