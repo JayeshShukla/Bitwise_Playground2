@@ -310,10 +310,12 @@ const Component9 = () => {
               <span className="c9-section-label">{c.label} Addresses</span>
               <span className="c9-count-chip">{list.length}</span>
             </div>
-            {list.map((entry) => (
-              <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
-                onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
-            ))}
+            <div className="c9-cards-grid">
+              {list.map((entry) => (
+                <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
+                  onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
+              ))}
+            </div>
           </div>
         );
       })}
@@ -328,10 +330,12 @@ const Component9 = () => {
               <span className="c9-section-label">{c.label} Addresses</span>
               <span className="c9-count-chip">{list.length}</span>
             </div>
-            {list.map((entry) => (
-              <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
-                onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
-            ))}
+            <div className="c9-cards-grid">
+              {list.map((entry) => (
+                <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
+                  onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
+              ))}
+            </div>
           </div>
         );
       })}

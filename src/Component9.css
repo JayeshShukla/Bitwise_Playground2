@@ -154,13 +154,28 @@
 }
 
 /* ADDRESS CARDS */
+.c9-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .c9-cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .c9-cards-grid { grid-template-columns: 1fr; }
+}
+
 .c9-addr-card {
   background: #111120;
   border: 1px solid #1e1e34;
   border-radius: 10px;
   padding: 14px 18px;
-  margin-bottom: 10px;
   transition: border-color 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 
 .c9-addr-card:hover { border-color: #333355; }
