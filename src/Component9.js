@@ -11,19 +11,25 @@ const ALCHEMY_POLY_KEY = process.env.REACT_APP_ALCHEMY_POLYGON_KEY      || "";
 const ALCHEMY_BASE_KEY = process.env.REACT_APP_ALCHEMY_BASE_KEY         || "";
 
 const EVM_CHAINS = [
-  { id: "ethereum",    label: "Ethereum",                    symbol: "ETH",   rpc: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`   },
-  { id: "polygon",     label: "Polygon",                     symbol: "MATIC", rpc: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_POLY_KEY}` },
-  { id: "base",        label: "Base",                        symbol: "ETH",   rpc: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}` },
-  { id: "sepolia",     label: "Ethereum Sepolia (testnet)",  symbol: "ETH",   rpc: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`   },
-  { id: "baseSepolia", label: "Base Sepolia (testnet)",      symbol: "ETH",   rpc: `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}` },
+  { id: "ethereum",    label: "Ethereum",                    symbol: "ETH",   rpc: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`,   keyName: "REACT_APP_ALCHEMY_ETHEREUM_API_KEY", keyValue: ALCHEMY_ETH_KEY  },
+  { id: "polygon",     label: "Polygon",                     symbol: "MATIC", rpc: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_POLY_KEY}`, keyName: "REACT_APP_ALCHEMY_POLYGON_KEY",      keyValue: ALCHEMY_POLY_KEY },
+  { id: "base",        label: "Base",                        symbol: "ETH",   rpc: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}`, keyName: "REACT_APP_ALCHEMY_BASE_KEY",         keyValue: ALCHEMY_BASE_KEY },
+  { id: "sepolia",     label: "Ethereum Sepolia (testnet)",  symbol: "ETH",   rpc: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_ETH_KEY}`,   keyName: "REACT_APP_ALCHEMY_ETHEREUM_API_KEY", keyValue: ALCHEMY_ETH_KEY  },
+  { id: "baseSepolia", label: "Base Sepolia (testnet)",      symbol: "ETH",   rpc: `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_BASE_KEY}`, keyName: "REACT_APP_ALCHEMY_BASE_KEY",         keyValue: ALCHEMY_BASE_KEY },
 ];
 
 const SOLANA_CHAINS = [
-  { id: "solana",       label: "Solana",        rpc: `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}` },
-  { id: "solanaDevnet", label: "Solana Devnet", rpc: `https://solana-devnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}`  },
+  { id: "solana",       label: "Solana",        rpc: `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}`, keyName: "REACT_APP_ALCHEMY_SOLANA_API_KEY", keyValue: ALCHEMY_SOL_KEY },
+  { id: "solanaDevnet", label: "Solana Devnet", rpc: `https://solana-devnet.g.alchemy.com/v2/${ALCHEMY_SOL_KEY}`,  keyName: "REACT_APP_ALCHEMY_SOLANA_API_KEY", keyValue: ALCHEMY_SOL_KEY },
 ];
 const isSolanaChain = (id) => SOLANA_CHAINS.some((c) => c.id === id);
 const STORAGE_KEY      = "c9_watchlist_v2";
+
+function requireKey(chain) {
+  if (!chain.keyValue) {
+    throw new Error(`Missing ${chain.keyName} — set it in your deploy environment (e.g. Netlify env vars) and redeploy, or in .env locally and restart the dev server.`);
+  }
+}
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -50,6 +56,7 @@ function nowStr() { return new Date().toLocaleTimeString(); }
 async function fetchEVM(entry) {
   const chain = EVM_CHAINS.find((c) => c.id === entry.chain);
   if (!chain) throw new Error("Unknown chain: " + entry.chain);
+  requireKey(chain);
   const provider = new ethers.JsonRpcProvider(chain.rpc);
   const raw      = await provider.getBalance(entry.address);
   const native   = parseFloat(ethers.formatEther(raw));
@@ -83,6 +90,7 @@ async function resolveTokenProgramId(connection, mint) {
 async function fetchSolana(entry) {
   const chain = SOLANA_CHAINS.find((c) => c.id === entry.chain);
   if (!chain) throw new Error("Unknown chain: " + entry.chain);
+  requireKey(chain);
   const connection = new Connection(chain.rpc, "confirmed");
   const pubkey     = new PublicKey(entry.address);
   const lamports   = await connection.getBalance(pubkey);
