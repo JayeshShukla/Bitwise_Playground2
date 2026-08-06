@@ -173,37 +173,103 @@ function useCopy() {
   return { copiedKey, copy };
 }
 
-function AddressCard({ entry, balanceData, onDelete, onRename, onRefresh }) {
+function AddressCard({ entry, balanceData, onDelete, onUpdate, onRefresh }) {
   const { copiedKey, copy } = useCopy();
-  const [editing, setEditing]     = useState(false);
-  const [nameInput, setNameInput] = useState(entry.name);
+  const [isEditing,      setIsEditing]      = useState(false);
+  const [editName,       setEditName]       = useState(entry.name);
+  const [editAddress,    setEditAddress]    = useState(entry.address);
+  const [editTokens,     setEditTokens]     = useState((entry.tokenAddresses || []).map((t) => t.address).join(", "));
+  const [editOffCurve,   setEditOffCurve]   = useState(entry.offCurve === true);
+  const [editAuthority,  setEditAuthority]  = useState(entry.authority || "");
+  const [editError,      setEditError]      = useState("");
 
-  const commitRename = () => { onRename(entry.id, nameInput.trim() || shortAddr(entry.address)); setEditing(false); };
+  const openEdit = () => {
+    setEditName(entry.name);
+    setEditAddress(entry.address);
+    setEditTokens((entry.tokenAddresses || []).map((t) => t.address).join(", "));
+    setEditOffCurve(entry.offCurve === true);
+    setEditAuthority(entry.authority || "");
+    setEditError("");
+    setIsEditing(true);
+  };
+
+  const saveEdit = () => {
+    const addr = editAddress.trim();
+    if (!addr) return setEditError("Address cannot be empty.");
+    if (isSolanaChain(entry.chain)) {
+      try { new PublicKey(addr); } catch { return setEditError("Invalid Solana address."); }
+    } else {
+      if (!ethers.isAddress(addr)) return setEditError("Invalid EVM address.");
+    }
+    const tokenAddresses = editTokens.split(",").map((s) => s.trim()).filter(Boolean).map((s) => ({ address: s }));
+    onUpdate(entry.id, {
+      name: editName.trim() || shortAddr(addr),
+      address: addr,
+      tokenAddresses,
+      ...(isSolanaChain(entry.chain) ? { offCurve: editOffCurve, authority: editAuthority.trim() || undefined } : {}),
+    });
+    setIsEditing(false);
+  };
 
   const bd     = balanceData[entry.id];
   const isLoad = bd?.status === "loading";
   const isErr  = bd?.status === "error";
   const isOk   = bd?.status === "ok";
 
+  if (isEditing) {
+    return (
+      <div className="c9-addr-card">
+        <div className="c9-edit-form">
+          <div className="c9-add-group">
+            <label>Name</label>
+            <input className="c9-input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+          </div>
+          <div className="c9-add-group">
+            <label>{isSolanaChain(entry.chain) ? "Wallet Address (Pubkey)" : "EVM Wallet Address"}</label>
+            <input className="c9-input" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} />
+          </div>
+          <div className="c9-add-group">
+            <label>{isSolanaChain(entry.chain) ? "Mint address(es)" : "Token contract(s)"}{" "}
+              <span style={{color:"#555",fontWeight:400,textTransform:"none"}}>(comma-separated, optional)</span>
+            </label>
+            <input className="c9-input" value={editTokens} onChange={(e) => setEditTokens(e.target.value)} />
+          </div>
+          {isSolanaChain(entry.chain) && (
+            <>
+              <label className="c9-checkbox-label">
+                <input type="checkbox" checked={editOffCurve} onChange={(e) => setEditOffCurve(e.target.checked)} />
+                Owner is a PDA / off-curve (program-controlled) address
+              </label>
+              {editOffCurve && (
+                <div className="c9-add-group" style={{marginTop:8}}>
+                  <label>Authority (optional, for your reference)</label>
+                  <input className="c9-input" placeholder="Pubkey with signing authority over this PDA…"
+                    value={editAuthority} onChange={(e) => setEditAuthority(e.target.value)} />
+                </div>
+              )}
+            </>
+          )}
+          {editError && <div className="c9-error-msg">⚠ {editError}</div>}
+          <div className="c9-edit-actions">
+            <button className="c9-btn-add" onClick={saveEdit}>Save</button>
+            <button className="c9-btn-cancel" onClick={() => setIsEditing(false)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="c9-addr-card">
       <div className="c9-addr-top">
-        {editing ? (
-          <input className="c9-name-input" value={nameInput} autoFocus
-            onChange={(e) => setNameInput(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={(e) => e.key === "Enter" && commitRename()} />
-        ) : (
-          <span className="c9-addr-name-display" onClick={() => setEditing(true)} title="Click to rename">
-            {entry.name}<span className="c9-edit-icon"><EditIcon /></span>
-          </span>
-        )}
+        <span className="c9-addr-name-display">{entry.name}</span>
         <span className="c9-addr-text">{entry.address}</span>
         {entry.offCurve && <span className="c9-pda-badge" title="Owner is an off-curve / PDA address">PDA</span>}
         <button className={`c9-copy-btn ${copiedKey === "a"+entry.id ? "copied" : ""}`}
           title="Copy address" onClick={() => copy(entry.address, "a"+entry.id)}>
           {copiedKey === "a"+entry.id ? <CheckIcon /> : <CopyIcon />}
         </button>
+        <button className="c9-edit-full-btn" title="Edit entry" onClick={openEdit}><EditIcon /></button>
         <button className="c9-del-btn" title="Remove" onClick={() => onDelete(entry.id)}><TrashIcon /></button>
       </div>
 
@@ -349,11 +415,35 @@ const Component9 = () => {
     setBalanceData((prev) => { const c = { ...prev }; delete c[id]; return c; });
   };
 
-  const handleRename  = (id, name) => setEntries((prev) => prev.map((e) => e.id === id ? { ...e, name } : e));
+  const handleUpdate = (id, updates) => {
+    const updatedEntry = { ...entries.find((e) => e.id === id), ...updates };
+    setEntries((prev) => prev.map((e) => e.id === id ? updatedEntry : e));
+    fetchEntry(updatedEntry);
+  };
   const handleRefresh = (id) => { const e = entries.find((x) => x.id === id); if (e) fetchEntry(e); };
 
   const solByChain = SOLANA_CHAINS.reduce((acc, c) => { acc[c.id] = entries.filter((e) => e.chain === c.id); return acc; }, {});
   const evmByChain = EVM_CHAINS.reduce((acc, c) => { acc[c.id] = entries.filter((e) => e.chain === c.id); return acc; }, {});
+
+  // Live per-chain totals: native + each distinct token symbol, summed across
+  // every card in that chain section that has a completed ("ok") fetch. Cards
+  // still loading/erroring are simply skipped rather than counted as zero.
+  function chainTotals(list) {
+    let anyOk = false, nativeSum = 0, nativeSymbol = null;
+    const tokenSums = {};
+    for (const entry of list) {
+      const bd = balanceData[entry.id];
+      if (bd?.status !== "ok") continue;
+      anyOk = true;
+      nativeSum += bd.nativeBalance || 0;
+      nativeSymbol = bd.nativeSymbol;
+      for (const tb of bd.tokenBalances || []) {
+        if (tb.balance == null) continue;
+        tokenSums[tb.symbol] = (tokenSums[tb.symbol] || 0) + tb.balance;
+      }
+    }
+    return { anyOk, nativeSum, nativeSymbol, tokenSums };
+  }
 
   return (
     <div className="c9-wrapper">
@@ -412,17 +502,24 @@ const Component9 = () => {
       {EVM_CHAINS.map((c) => {
         const list = evmByChain[c.id] || [];
         if (!list.length) return null;
+        const totals = chainTotals(list);
         return (
           <div className="c9-section" key={c.id}>
             <div className="c9-section-header">
               <span className="c9-chain-badge eth">{c.label.toUpperCase()}</span>
               <span className="c9-section-label">{c.label} Addresses</span>
               <span className="c9-count-chip">{list.length}</span>
+              {totals.anyOk && (
+                <span className="c9-total-chip">{fmt(totals.nativeSum)} {totals.nativeSymbol}</span>
+              )}
+              {Object.entries(totals.tokenSums).map(([sym, sum]) => (
+                <span className="c9-total-chip" key={sym}>{fmt(sum)} {sym}</span>
+              ))}
             </div>
             <div className="c9-cards-grid">
               {list.map((entry) => (
                 <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
-                  onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
+                  onDelete={handleDelete} onUpdate={handleUpdate} onRefresh={handleRefresh} />
               ))}
             </div>
           </div>
@@ -432,17 +529,24 @@ const Component9 = () => {
       {SOLANA_CHAINS.map((c) => {
         const list = solByChain[c.id] || [];
         if (!list.length) return null;
+        const totals = chainTotals(list);
         return (
           <div className="c9-section" key={c.id}>
             <div className="c9-section-header">
               <span className="c9-chain-badge sol">{c.label.toUpperCase()}</span>
               <span className="c9-section-label">{c.label} Addresses</span>
               <span className="c9-count-chip">{list.length}</span>
+              {totals.anyOk && (
+                <span className="c9-total-chip">{fmt(totals.nativeSum)} {totals.nativeSymbol}</span>
+              )}
+              {Object.entries(totals.tokenSums).map(([sym, sum]) => (
+                <span className="c9-total-chip" key={sym}>{fmt(sum)} {sym}</span>
+              ))}
             </div>
             <div className="c9-cards-grid">
               {list.map((entry) => (
                 <AddressCard key={entry.id} entry={entry} balanceData={balanceData}
-                  onDelete={handleDelete} onRename={handleRename} onRefresh={handleRefresh} />
+                  onDelete={handleDelete} onUpdate={handleUpdate} onRefresh={handleRefresh} />
               ))}
             </div>
           </div>
