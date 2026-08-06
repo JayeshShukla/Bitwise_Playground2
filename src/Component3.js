@@ -30,7 +30,7 @@ const Component3 = () => {
 
   useEffect(() => {
     if (networks.length > 0) setSelectedRpc(networks[0].rpc);
-  }, []);
+  }, [networks]);
 
   // Validate address format dynamically
   useEffect(() => {

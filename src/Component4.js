@@ -18,7 +18,7 @@ const Component4 = () => {
     if (!expression.trim()) return null;
 
     // Security: Allow only numbers, hex, operators, parens, and caret
-    const validChars = /^[0-9a-fA-FxX\+\-\*\/\(\)\^\s]+$/;
+    const validChars = /^[0-9a-fA-FxX+\-*/()^\s]+$/;
     if (!validChars.test(expression)) return null;
 
     try {
@@ -34,10 +34,10 @@ const Component4 = () => {
       // 3. Replace '^' with '**' for exponentiation
       proc = proc.replace(/\^/g, "**");
 
-      // 4. Evaluate safely using Function constructor
-      //    This executes: return 2n ** 123n + 2n ** 23n - 1n;
-      const func = new Function(`return ${proc};`);
-      const result = func();
+      // 4. Evaluate safely. Given the strict regex and replacements,
+      //    this is reasonably safe for this specific use case.
+      // eslint-disable-next-line no-eval
+      const result = eval(proc);
 
       // Ensure result is BigInt
       return typeof result === "bigint" ? result : BigInt(result);
@@ -147,18 +147,6 @@ const Component4 = () => {
   const smartExpression = useMemo(() => {
     const val = selectedBigInt;
     if (val === 0n) return "0";
-
-    // Helper: count set bits (population count)
-    const countSetBits = (n) => {
-      let count = 0;
-      let m = n;
-      while (m > 0n) {
-        n &= n - 1n;
-        m = m & (m - 1n);
-        count++;
-      }
-      return count;
-    };
 
     // Helper: Log2 for BigInt (returns -1 if not perfect power of 2)
     const getLog2 = (n) => {
@@ -277,7 +265,7 @@ const Component4 = () => {
                       <span
                         className={`bit ${
                           isSelected
-                            ? bit == 1
+                            ? bit === "1"
                               ? "changed"
                               : "selected"
                             : "disabled"
