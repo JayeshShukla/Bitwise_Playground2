@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ethers } from "ethers";
 import "./Component3.css";
 import config from "./config";
@@ -17,16 +17,19 @@ const Component3 = () => {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const networks = [
-    { name: "Ethereum Mainnet", rpc: config.networks.ethereum.rpc },
-    { name: "Ethereum Testnet", rpc: config.networks.sepolia.rpc },
-    { name: "Polygon Mainnet", rpc: config.networks.polygon.rpc },
-    { name: "Polygon Testnet", rpc: config.networks.polygonAmoy.rpc },
-    { name: "Base Mainnet", rpc: config.networks.mainnetBase.rpc },
-    { name: "Base Testnet", rpc: config.networks.sepoliaBase.rpc },
-    { name: "ZetaChain Mainnet", rpc: config.networks.mainnetZeta.rpc },
-    { name: "ZetaChain Testnet", rpc: config.networks.testnetZeta.rpc },
-  ];
+  const networks = useMemo(
+    () => [
+      { name: "Ethereum Mainnet", rpc: config.networks.ethereum.rpc },
+      { name: "Ethereum Testnet", rpc: config.networks.sepolia.rpc },
+      { name: "Polygon Mainnet", rpc: config.networks.polygon.rpc },
+      { name: "Polygon Testnet", rpc: config.networks.polygonAmoy.rpc },
+      { name: "Base Mainnet", rpc: config.networks.mainnetBase.rpc },
+      { name: "Base Testnet", rpc: config.networks.sepoliaBase.rpc },
+      { name: "ZetaChain Mainnet", rpc: config.networks.mainnetZeta.rpc },
+      { name: "ZetaChain Testnet", rpc: config.networks.testnetZeta.rpc },
+    ],
+    []
+  );
 
   useEffect(() => {
     if (networks.length > 0) setSelectedRpc(networks[0].rpc);

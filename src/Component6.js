@@ -1470,7 +1470,7 @@ pub fn handler(ctx: Context<Refund>) -> Result<()> {
   },
 
   // =========================================================
-  // 12. HASHSET
+  // 32. HASHSET
   // =========================================================
   {
     id: "hashset",
@@ -1515,7 +1515,7 @@ let ref_x = &x;
   },
 
   // =========================================================
-  // 13. TUPLES
+  // 33. TUPLES
   // =========================================================
   {
     id: "tuples",
@@ -1541,7 +1541,7 @@ x.clone(); // clone works but only if typle does not have any dynamic collection
   },
 
   // =========================================================
-  // 14. OPTIONS (Renamed)
+  // 34. OPTIONS (Renamed)
   // =========================================================
   {
     id: "options_inbuilt",
@@ -1569,7 +1569,7 @@ let max_val = match a.iter().max() {
   },
 
   // =========================================================
-  // 15. RESULT<>
+  // 35. RESULT<>
   // =========================================================
   {
     id: "result_enum",
@@ -1592,7 +1592,7 @@ let max_val = match a.iter().max() {
   },
 
   // =========================================================
-  // 16. ::from() & .into()
+  // 36. ::from() & .into()
   // =========================================================
   {
     id: "from_trait",
@@ -1644,7 +1644,7 @@ u16::from(i) // a type can be converted to other using from
   },
 
   // =========================================================
-  // 17. TRY_INTO() & TRY_FROM()
+  // 37. TRY_INTO() & TRY_FROM()
   // =========================================================
   {
     id: "try_into",
@@ -1667,7 +1667,7 @@ u16::from(i) // a type can be converted to other using from
   },
 
   // =========================================================
-  // 18. UTILITY FUNCTIONS
+  // 38. UTILITY FUNCTIONS
   // =========================================================
   {
     id: "utility",
@@ -1690,7 +1690,7 @@ format!() // creates a new string eg : format!("jl-{}", symbol.to_uppercase()); 
   },
 
   // =========================================================
-  // 19. HASHMAPS
+  // 39. HASHMAPS
   // =========================================================
   {
     id: "hashmaps",
@@ -1756,7 +1756,7 @@ let ref_x = &x;
   },
 
   // =========================================================
-  // 20. TRAIT & IMPLEMENTATION
+  // 40. TRAIT & IMPLEMENTATION
   // =========================================================
   {
     id: "trait_impl",
@@ -1782,7 +1782,7 @@ imp trait for struct2 {} // here goes the logic2 for struct2 but for same trait`
   },
 
   // =========================================================
-  // 21. TURBOFISH
+  // 41. TURBOFISH
   // =========================================================
   {
     id: "turbofish",
@@ -1802,7 +1802,7 @@ let set = v.into_iter().collect::<HashSet<i32>>(); // look above how turbofish h
   },
 
   // =========================================================
-  // 22. RUST MAP & CLOSURE
+  // 42. RUST MAP & CLOSURE
   // =========================================================
   {
     id: "map_closure",
@@ -1880,7 +1880,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 23. .ENUMERATE()
+  // 43. .ENUMERATE()
   // =========================================================
   {
     id: "enumerate",
@@ -1898,7 +1898,7 @@ sl.iter().enumerate().map(|(x,&y)| {x as i32 +y}).collect() // due to above reas
   },
 
   // =========================================================
-  // 24. FILTER
+  // 44. FILTER
   // =========================================================
   {
     id: "filter_trait",
@@ -1925,7 +1925,7 @@ pub fn remove_at(s: String, index: usize) -> String {
   },
 
   // =========================================================
-  // 25. MATCH (OR SWITCH)
+  // 45. MATCH (OR SWITCH)
   // =========================================================
   {
     id: "match_switch",
@@ -2021,7 +2021,7 @@ pub fn abs_inside_value(v: &[Option<i32>]) -> Vec<Option<i32>> {
   },
 
   // =========================================================
-  // 26. IF LET SYNTAX
+  // 46. IF LET SYNTAX
   // =========================================================
   {
     id: "if_let_syntax",
@@ -2074,7 +2074,7 @@ pub fn inc_if_present(m: &mut HashMap<i32, i32>, k: &i32) {
   },
 
   // =========================================================
-  // 27. FLOATING POINTS : F32 & F64
+  // 47. FLOATING POINTS : F32 & F64
   // =========================================================
   {
     id: "floating_points",
@@ -2169,7 +2169,7 @@ std::f32::consts::LN_2;       // Natural log of 2`
   },
 
   // =========================================================
-  // 28. HASHING IN RUST
+  // 48. HASHING IN RUST
   // =========================================================
   {
     id: "hashing_rust",
@@ -2185,7 +2185,7 @@ std::f32::consts::LN_2;       // Natural log of 2`
   },
 
   // =========================================================
-  // 29. CONVERSION(HEX, BYTES, [U8])
+  // 49. CONVERSION(HEX, BYTES, [U8])
   // =========================================================
   {
     id: "conversion_hex_bytes",
@@ -2202,7 +2202,7 @@ hex_to_bytes(&str) -> Vec<u8>`
   },
 
   // =========================================================
-  // 30. IMPLIMENTATION
+  // 50. IMPLIMENTATION
   // =========================================================
   {
     id: "implementation",
@@ -2257,7 +2257,7 @@ impl Color {
   },
 
   // =========================================================
-  // 31. ITERATOR & RANGES
+  // 51. ITERATOR & RANGES
   // =========================================================
   {
     id: "iterator_ranges",
@@ -2423,7 +2423,7 @@ pub fn ge_sum_before(sl: &[u32]) -> Vec<bool> {
   },
 
   // =========================================================
-  // 32. OWNERSHIP & CONSUMPTION
+  // 52. OWNERSHIP & CONSUMPTION
   // =========================================================
   {
     id: "ownership_main",
@@ -2485,10 +2485,6 @@ let y = x.clone().into_iter() // <@ clone does not let original x to be consumed
 const Component6 = () => {
   const [activeView, setActiveView] = useState("grid");
   const [expandedTopic, setExpandedTopic] = useState(null);
-
-  const toggleTopic = (id) => {
-    setExpandedTopic(expandedTopic === id ? null : id);
-  };
 
   return (
     <div className="rust-lookup-container">
