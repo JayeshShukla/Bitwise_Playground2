@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import "./Component9.css";
 
 const ALCHEMY_ETH_KEY  = process.env.REACT_APP_ALCHEMY_ETHEREUM_API_KEY || "";
@@ -68,6 +69,17 @@ async function fetchEVM(entry) {
   return { nativeBalance: native, nativeBalanceRaw: raw.toString(), nativeSymbol: chain.symbol, tokenBalances };
 }
 
+// A wallet's SPL/Token-2022 balance for a given mint doesn't live at the
+// wallet's own address — it lives in a separate token account, deterministically
+// derived from (mint, owner, token program). We have to derive that Associated
+// Token Account address ourselves and query *it*, not just ask "what accounts
+// does this owner have" and hope the first one back is the right one.
+async function resolveTokenProgramId(connection, mint) {
+  const info = await connection.getAccountInfo(mint);
+  if (!info) throw new Error("Mint account not found on this cluster");
+  return info.owner.equals(TOKEN_2022_PROGRAM_ID) ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+}
+
 async function fetchSolana(entry) {
   const chain = SOLANA_CHAINS.find((c) => c.id === entry.chain);
   if (!chain) throw new Error("Unknown chain: " + entry.chain);
@@ -75,21 +87,34 @@ async function fetchSolana(entry) {
   const pubkey     = new PublicKey(entry.address);
   const lamports   = await connection.getBalance(pubkey);
   const native     = lamports / 1e9;
+  // Off-curve owners (PDAs / program-controlled vaults) need allowOwnerOffCurve
+  // set, otherwise the ATA derivation throws — a normal wallet keypair is
+  // on-curve and doesn't need it.
+  const offCurve   = entry.offCurve === true;
+
   const tokenBalances = [];
   for (const ta of entry.tokenAddresses || []) {
     try {
-      const mint     = new PublicKey(ta.address);
-      const accounts = await connection.getParsedTokenAccountsByOwner(pubkey, { mint });
-      let balance    = 0;
-      let balanceRaw = "0";
-      let decimals   = null;
-      if (accounts.value.length > 0) {
-        const amountInfo = accounts.value[0].account.data.parsed.info.tokenAmount;
-        balance    = parseFloat(amountInfo.uiAmountString);
-        balanceRaw = amountInfo.amount;
-        decimals   = amountInfo.decimals;
+      const mint          = new PublicKey(ta.address);
+      const tokenProgramId = await resolveTokenProgramId(connection, mint);
+      const ata            = await getAssociatedTokenAddress(mint, pubkey, offCurve, tokenProgramId);
+
+      let balance = 0, balanceRaw = "0", decimals = null;
+      try {
+        const res  = await connection.getTokenAccountBalance(ata);
+        balance    = parseFloat(res.value.uiAmountString || "0");
+        balanceRaw = res.value.amount;
+        decimals   = res.value.decimals;
+      } catch (balErr) {
+        // ATA hasn't been created on-chain yet (owner never received this
+        // token) — that's a real, valid state, not a fetch failure.
+        if (!/could not find account/i.test(balErr.message || "")) throw balErr;
       }
-      tokenBalances.push({ address: ta.address, symbol: ta.label || shortAddr(ta.address), balance, balanceRaw, decimals });
+
+      tokenBalances.push({
+        address: ta.address, ata: ata.toBase58(),
+        symbol: ta.label || shortAddr(ta.address), balance, balanceRaw, decimals,
+      });
     } catch (e) {
       tokenBalances.push({ address: ta.address, symbol: ta.label || shortAddr(ta.address), balance: null, balanceRaw: null, error: e.message });
     }
@@ -155,12 +180,24 @@ function AddressCard({ entry, balanceData, onDelete, onRename, onRefresh }) {
           </span>
         )}
         <span className="c9-addr-text">{entry.address}</span>
+        {entry.offCurve && <span className="c9-pda-badge" title="Owner is an off-curve / PDA address">PDA</span>}
         <button className={`c9-copy-btn ${copiedKey === "a"+entry.id ? "copied" : ""}`}
           title="Copy address" onClick={() => copy(entry.address, "a"+entry.id)}>
           {copiedKey === "a"+entry.id ? <CheckIcon /> : <CopyIcon />}
         </button>
         <button className="c9-del-btn" title="Remove" onClick={() => onDelete(entry.id)}><TrashIcon /></button>
       </div>
+
+      {entry.offCurve && entry.authority && (
+        <div className="c9-authority-row">
+          <span className="c9-authority-label">Authority</span>
+          <span>{entry.authority}</span>
+          <button className={`c9-copy-btn ${copiedKey==="auth"+entry.id?"copied":""}`}
+            title="Copy authority address" onClick={() => copy(entry.authority, "auth"+entry.id)}>
+            {copiedKey==="auth"+entry.id ? <CheckIcon/> : <CopyIcon/>}
+          </button>
+        </div>
+      )}
 
       {isLoad && <div className="c9-status-loading"><span className="c9-spinner" /> Fetching balances…</div>}
       {isErr  && <div className="c9-status-error">⚠ {bd.error}</div>}
@@ -208,17 +245,30 @@ function AddressCard({ entry, balanceData, onDelete, onRename, onRefresh }) {
 
       {(entry.tokenAddresses||[]).length > 0 && (
         <div className="c9-token-addr-list">
-          {entry.tokenAddresses.map((ta, i) => (
-            <div className="c9-token-addr-row" key={i}>
-              <span style={{color:"#444"}}>├</span>
-              <span style={{color:"#666"}}>{ta.label || shortAddr(ta.address)}</span>
-              <span>{ta.address}</span>
-              <button className={`c9-copy-btn ${copiedKey==="ta"+i+entry.id?"copied":""}`}
-                onClick={() => copy(ta.address,"ta"+i+entry.id)}>
-                {copiedKey==="ta"+i+entry.id ? <CheckIcon/> : <CopyIcon/>}
-              </button>
-            </div>
-          ))}
+          {entry.tokenAddresses.map((ta, i) => {
+            const tb = bd?.tokenBalances?.[i];
+            return (
+              <div className="c9-token-addr-row" key={i}>
+                <span style={{color:"#444"}}>├</span>
+                <span style={{color:"#666"}}>{ta.label || shortAddr(ta.address)}</span>
+                <span>{ta.address}</span>
+                <button className={`c9-copy-btn ${copiedKey==="ta"+i+entry.id?"copied":""}`}
+                  title="Copy mint address" onClick={() => copy(ta.address,"ta"+i+entry.id)}>
+                  {copiedKey==="ta"+i+entry.id ? <CheckIcon/> : <CopyIcon/>}
+                </button>
+                {tb?.ata && (
+                  <>
+                    <span style={{color:"#444"}}>ATA:</span>
+                    <span style={{color:"#888"}}>{tb.ata}</span>
+                    <button className={`c9-copy-btn ${copiedKey==="ata"+i+entry.id?"copied":""}`}
+                      title="Copy Associated Token Account address" onClick={() => copy(tb.ata,"ata"+i+entry.id)}>
+                      {copiedKey==="ata"+i+entry.id ? <CheckIcon/> : <CopyIcon/>}
+                    </button>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -232,6 +282,8 @@ const Component9 = () => {
   const [nameInput,   setNameInput]   = useState("");
   const [chainInput,  setChainInput]  = useState("ethereum");
   const [tokenInput,  setTokenInput]  = useState("");
+  const [pdaToggle,     setPdaToggle]     = useState(false);
+  const [authorityInput, setAuthorityInput] = useState("");
   const [addError,    setAddError]    = useState("");
 
   useEffect(() => { saveEntries(entries); }, [entries]);
@@ -261,9 +313,12 @@ const Component9 = () => {
       if (!ethers.isAddress(addr)) return setAddError("Invalid EVM address.");
     }
     const tokenAddresses = tokenInput.split(",").map((s) => s.trim()).filter(Boolean).map((s) => ({ address: s }));
-    const newEntry = { id: Date.now().toString(), address: addr, name: nameInput.trim() || shortAddr(addr), chain: chainInput, tokenAddresses };
+    const newEntry = {
+      id: Date.now().toString(), address: addr, name: nameInput.trim() || shortAddr(addr), chain: chainInput, tokenAddresses,
+      ...(isSolanaChain(chainInput) ? { offCurve: pdaToggle, authority: authorityInput.trim() || undefined } : {}),
+    };
     setEntries((prev) => [...prev, newEntry]);
-    setAddrInput(""); setNameInput(""); setTokenInput("");
+    setAddrInput(""); setNameInput(""); setTokenInput(""); setPdaToggle(false); setAuthorityInput("");
     fetchEntry(newEntry);
   };
 
@@ -312,6 +367,23 @@ const Component9 = () => {
           </div>
           <button className="c9-btn-add" onClick={handleAdd}>Add</button>
         </div>
+
+        {isSolanaChain(chainInput) && (
+          <div className="c9-pda-row">
+            <label className="c9-checkbox-label">
+              <input type="checkbox" checked={pdaToggle} onChange={(e) => setPdaToggle(e.target.checked)} />
+              Owner is a PDA / off-curve (program-controlled) address
+            </label>
+            {pdaToggle && (
+              <div className="c9-add-group" style={{flex:2, minWidth:260, marginTop:8}}>
+                <label>Authority (optional, for your reference)</label>
+                <input className="c9-input" placeholder="Pubkey with signing authority over this PDA…"
+                  value={authorityInput} onChange={(e) => setAuthorityInput(e.target.value)} />
+              </div>
+            )}
+          </div>
+        )}
+
         {addError && <div className="c9-error-msg">⚠ {addError}</div>}
       </div>
 
