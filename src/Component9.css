@@ -293,6 +293,26 @@
 
 .c9-bal-symbol { color: #666; font-size: 0.72rem; }
 
+.c9-raw-btn {
+  background: none;
+  border: 1px solid #2a2a40;
+  color: #666;
+  font-family: "Courier New", monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.c9-raw-btn:hover { color: #aaa; border-color: #444; background: #1e1e30; }
+.c9-raw-btn.copied { color: #4fd1c5; border-color: #4fd1c5; }
+
 .c9-status-loading {
   font-size: 0.8rem;
   color: #555;

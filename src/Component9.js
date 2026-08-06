@@ -1,5 +1,5 @@
 // src/Component9.js
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { Connection, PublicKey } from "@solana/web3.js";
 import "./Component9.css";
@@ -23,7 +23,6 @@ const SOLANA_CHAINS = [
 ];
 const isSolanaChain = (id) => SOLANA_CHAINS.some((c) => c.id === id);
 const STORAGE_KEY      = "c9_watchlist_v2";
-const REFRESH_INTERVAL = 15 * 60 * 1000;
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -58,12 +57,15 @@ async function fetchEVM(entry) {
     try {
       const ct = new ethers.Contract(ta.address, ERC20_ABI, provider);
       const [bal, sym, dec] = await Promise.all([ct.balanceOf(entry.address), ct.symbol(), ct.decimals()]);
-      tokenBalances.push({ address: ta.address, symbol: sym, balance: parseFloat(ethers.formatUnits(bal, dec)) });
+      tokenBalances.push({
+        address: ta.address, symbol: sym, decimals: Number(dec),
+        balance: parseFloat(ethers.formatUnits(bal, dec)), balanceRaw: bal.toString(),
+      });
     } catch (e) {
-      tokenBalances.push({ address: ta.address, symbol: "???", balance: null, error: e.message });
+      tokenBalances.push({ address: ta.address, symbol: "???", balance: null, balanceRaw: null, error: e.message });
     }
   }
-  return { nativeBalance: native, nativeSymbol: chain.symbol, tokenBalances };
+  return { nativeBalance: native, nativeBalanceRaw: raw.toString(), nativeSymbol: chain.symbol, tokenBalances };
 }
 
 async function fetchSolana(entry) {
@@ -79,14 +81,20 @@ async function fetchSolana(entry) {
       const mint     = new PublicKey(ta.address);
       const accounts = await connection.getParsedTokenAccountsByOwner(pubkey, { mint });
       let balance    = 0;
-      if (accounts.value.length > 0)
-        balance = parseFloat(accounts.value[0].account.data.parsed.info.tokenAmount.uiAmountString);
-      tokenBalances.push({ address: ta.address, symbol: ta.label || shortAddr(ta.address), balance });
+      let balanceRaw = "0";
+      let decimals   = null;
+      if (accounts.value.length > 0) {
+        const amountInfo = accounts.value[0].account.data.parsed.info.tokenAmount;
+        balance    = parseFloat(amountInfo.uiAmountString);
+        balanceRaw = amountInfo.amount;
+        decimals   = amountInfo.decimals;
+      }
+      tokenBalances.push({ address: ta.address, symbol: ta.label || shortAddr(ta.address), balance, balanceRaw, decimals });
     } catch (e) {
-      tokenBalances.push({ address: ta.address, symbol: ta.label || shortAddr(ta.address), balance: null, error: e.message });
+      tokenBalances.push({ address: ta.address, symbol: ta.label || shortAddr(ta.address), balance: null, balanceRaw: null, error: e.message });
     }
   }
-  return { nativeBalance: native, nativeSymbol: "SOL", tokenBalances };
+  return { nativeBalance: native, nativeBalanceRaw: lamports.toString(), nativeSymbol: "SOL", tokenBalances };
 }
 
 const CopyIcon = () => (
@@ -163,14 +171,28 @@ function AddressCard({ entry, balanceData, onDelete, onRename, onRefresh }) {
               <span className="c9-bal-label">Native</span>
               <span className="c9-bal-value">{fmt(bd.nativeBalance)}</span>
               <span className="c9-bal-symbol">{bd.nativeSymbol}</span>
+              {bd.nativeBalanceRaw != null && (
+                <button className={`c9-raw-btn ${copiedKey==="nraw"+entry.id?"copied":""}`}
+                  title={"Copy raw value (smallest unit) for contract calls:\n"+bd.nativeBalanceRaw}
+                  onClick={() => copy(bd.nativeBalanceRaw, "nraw"+entry.id)}>
+                  {copiedKey==="nraw"+entry.id ? <CheckIcon/> : <>RAW<CopyIcon/></>}
+                </button>
+              )}
             </div>
             {(bd.tokenBalances || []).map((tb, i) => (
               <div className="c9-bal-chip token" key={i}>
                 <span className="c9-bal-label">Token</span>
                 <span className="c9-bal-value">{fmt(tb.balance)}</span>
                 <span className="c9-bal-symbol">{tb.symbol}</span>
+                {tb.balanceRaw != null && (
+                  <button className={`c9-raw-btn ${copiedKey==="traw"+i+entry.id?"copied":""}`}
+                    title={"Copy raw value (smallest unit) for contract calls:\n"+tb.balanceRaw}
+                    onClick={() => copy(tb.balanceRaw, "traw"+i+entry.id)}>
+                    {copiedKey==="traw"+i+entry.id ? <CheckIcon/> : <>RAW<CopyIcon/></>}
+                  </button>
+                )}
                 <button className={`c9-copy-btn ${copiedKey==="t"+i+entry.id?"copied":""}`}
-                  title={"Copy: "+tb.address} onClick={() => copy(tb.address,"t"+i+entry.id)} style={{marginLeft:2}}>
+                  title={"Copy contract address: "+tb.address} onClick={() => copy(tb.address,"t"+i+entry.id)} style={{marginLeft:2}}>
                   {copiedKey==="t"+i+entry.id ? <CheckIcon/> : <CopyIcon/>}
                 </button>
               </div>
@@ -229,13 +251,6 @@ const Component9 = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (entries.length > 0) fetchAll(entries); }, []);
 
-  const entriesRef = useRef(entries);
-  entriesRef.current = entries;
-  useEffect(() => {
-    const id = setInterval(() => { if (entriesRef.current.length > 0) fetchAll(entriesRef.current); }, REFRESH_INTERVAL);
-    return () => clearInterval(id);
-  }, [fetchAll]);
-
   const handleAdd = () => {
     setAddError("");
     const addr = addrInput.trim();
@@ -266,7 +281,7 @@ const Component9 = () => {
   return (
     <div className="c9-wrapper">
       <h2 className="c9-title">🔭 Token Watcher</h2>
-      <p className="c9-subtitle">Track native + token balances for EVM addresses and Solana wallets. Persists forever · Auto-refreshes every 15 min.</p>
+      <p className="c9-subtitle">Track native + token balances for EVM addresses and Solana wallets. Persists forever · Fetches once on load, use ↻ Refresh to update.</p>
 
       <div className="c9-add-card">
         <p className="c9-add-title">+ Add Address to Watch</p>
