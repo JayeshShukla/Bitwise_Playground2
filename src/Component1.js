@@ -232,7 +232,7 @@ const SOLANA_CHAINS = [
 ];
 
 const CHAINS_BY_KEY = Object.fromEntries(
-  [...EVM_CHAINS, ...SOLANA_CHAINS].map((c) => [c.key, c])
+    [...EVM_CHAINS, ...SOLANA_CHAINS].map((c) => [c.key, c])
 );
 
 const CHAIN_GROUPS = [
@@ -264,7 +264,7 @@ function useEvmProviders() {
     window.addEventListener("eip6963:announceProvider", onAnnounce);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
     return () =>
-      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+        window.removeEventListener("eip6963:announceProvider", onAnnounce);
   }, []);
 
   return providers;
@@ -311,9 +311,9 @@ function parseAbiParamValue(type, rawValue) {
 
 function stringifyResult(value) {
   return JSON.stringify(
-    value,
-    (_key, v) => (typeof v === "bigint" ? v.toString() : v),
-    2
+      value,
+      (_key, v) => (typeof v === "bigint" ? v.toString() : v),
+      2
   );
 }
 
@@ -355,12 +355,12 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
   const contractFunctions = useMemo(() => {
     if (!parsedAbi) return [];
     return parsedAbi
-      .filter((item) => item.type === "function")
-      .map((item) => ({
-        ...item,
-        inputs: item.inputs || [],
-        signature: `${item.name}(${(item.inputs || []).map((inp) => inp.type).join(",")})`,
-      }));
+        .filter((item) => item.type === "function")
+        .map((item) => ({
+          ...item,
+          inputs: item.inputs || [],
+          signature: `${item.name}(${(item.inputs || []).map((inp) => inp.type).join(",")})`,
+        }));
   }, [parsedAbi]);
 
   // Keep the selected function valid whenever the ABI changes.
@@ -426,7 +426,7 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
 
       const contract = new ethers.Contract(contractAddress.trim(), parsedAbi, signer);
       const args = selectedFunction.inputs.map((input, i) =>
-        parseAbiParamValue(input.type, functionArgs[i])
+          parseAbiParamValue(input.type, functionArgs[i])
       );
 
       const overrides = {};
@@ -456,141 +456,141 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
   };
 
   return (
-    <div style={cardStyle}>
-      <h2 style={{ marginBottom: 4 }}>Call Any Contract Function</h2>
-      <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
-        EVM only — paste a contract address and its ABI, pick a function, fill in the
-        arguments. View/pure functions are read directly; everything else is sent as a
-        transaction from the EVM wallet selected above, on {chain.label}.
-      </p>
+      <div style={cardStyle}>
+        <h2 style={{ marginBottom: 4 }}>Call Any Contract Function</h2>
+        <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
+          EVM only — paste a contract address and its ABI, pick a function, fill in the
+          arguments. View/pure functions are read directly; everything else is sent as a
+          transaction from the EVM wallet selected above, on {chain.label}.
+        </p>
 
-      <div style={{ marginBottom: 15 }}>
-        <label>Contract Address</label>
-        <input
-          type="text"
-          placeholder="0x..."
-          value={contractAddress}
-          onChange={(e) => setContractAddress(e.target.value)}
-          style={inputStyle}
-        />
-      </div>
-
-      <div style={{ marginBottom: 15 }}>
-        <label>Contract ABI (JSON array, or an Etherscan-style {"{ \"abi\": [...] }"} blob)</label>
-        <textarea
-          rows={6}
-          placeholder='[{"type":"function","name":"transfer","inputs":[...],"stateMutability":"nonpayable",...}]'
-          value={abiJson}
-          onChange={(e) => setAbiJson(e.target.value)}
-          style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
-        />
-        {abiError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{abiError}</div>}
-      </div>
-
-      {contractFunctions.length > 0 && (
-        <>
-          <div style={{ marginBottom: 15 }}>
-            <label>Function</label>
-            <select
-              value={selectedSignature}
-              onChange={(e) => setSelectedSignature(e.target.value)}
+        <div style={{ marginBottom: 15 }}>
+          <label>Contract Address</label>
+          <input
+              type="text"
+              placeholder="0x..."
+              value={contractAddress}
+              onChange={(e) => setContractAddress(e.target.value)}
               style={inputStyle}
-            >
-              {contractFunctions.map((f) => (
-                <option key={f.signature} value={f.signature}>
-                  {f.signature} ({f.stateMutability})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <form onSubmit={handleCall} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-            {selectedFunction &&
-              selectedFunction.inputs.map((input, i) => (
-                <div key={`${selectedFunction.signature}-${i}`}>
-                  <label>
-                    {input.name || `arg${i}`} <span style={{ color: "#93c5fd" }}>({input.type})</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={
-                      input.type.endsWith("[]")
-                        ? "comma-separated, or JSON array"
-                        : input.type.startsWith("tuple")
-                        ? "JSON array/object matching the tuple"
-                        : input.type
-                    }
-                    value={functionArgs[i] ?? ""}
-                    onChange={(e) => handleArgChange(i, e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-              ))}
-
-            {isPayable && (
-              <div>
-                <label>Value to send ({chain.nativeCurrency.symbol})</label>
-                <input
-                  type="text"
-                  placeholder="0.0"
-                  value={payableValue}
-                  onChange={(e) => setPayableValue(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading || !selectedFunction}
-              style={{
-                padding: "15px",
-                backgroundColor: isRead ? "#1d4ed8" : "#000",
-                color: "#fff",
-                cursor: isLoading ? "not-allowed" : "pointer",
-                opacity: isLoading ? 0.6 : 1,
-                border: "none",
-                borderRadius: "5px",
-                fontWeight: "bold",
-              }}
-            >
-              {isLoading ? "Working..." : isRead ? "Read" : "Write (Send Transaction)"}
-            </button>
-          </form>
-        </>
-      )}
-
-      {status && (
-        <div
-          style={{
-            marginTop: 20,
-            padding: 15,
-            backgroundColor: "#f0f0f0",
-            borderRadius: 5,
-            wordWrap: "break-word",
-            color: "#0f172a",
-          }}
-        >
-          {status}
+          />
         </div>
-      )}
 
-      {result && (
-        <pre
-          style={{
-            marginTop: 12,
-            padding: 15,
-            backgroundColor: "#0f172a",
-            color: "#e2e8f0",
-            borderRadius: 5,
-            overflowX: "auto",
-            fontSize: 12,
-          }}
-        >
+        <div style={{ marginBottom: 15 }}>
+          <label>Contract ABI (JSON array, or an Etherscan-style {"{ \"abi\": [...] }"} blob)</label>
+          <textarea
+              rows={6}
+              placeholder='[{"type":"function","name":"transfer","inputs":[...],"stateMutability":"nonpayable",...}]'
+              value={abiJson}
+              onChange={(e) => setAbiJson(e.target.value)}
+              style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
+          />
+          {abiError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{abiError}</div>}
+        </div>
+
+        {contractFunctions.length > 0 && (
+            <>
+              <div style={{ marginBottom: 15 }}>
+                <label>Function</label>
+                <select
+                    value={selectedSignature}
+                    onChange={(e) => setSelectedSignature(e.target.value)}
+                    style={inputStyle}
+                >
+                  {contractFunctions.map((f) => (
+                      <option key={f.signature} value={f.signature}>
+                        {f.signature} ({f.stateMutability})
+                      </option>
+                  ))}
+                </select>
+              </div>
+
+              <form onSubmit={handleCall} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+                {selectedFunction &&
+                    selectedFunction.inputs.map((input, i) => (
+                        <div key={`${selectedFunction.signature}-${i}`}>
+                          <label>
+                            {input.name || `arg${i}`} <span style={{ color: "#93c5fd" }}>({input.type})</span>
+                          </label>
+                          <input
+                              type="text"
+                              placeholder={
+                                input.type.endsWith("[]")
+                                    ? "comma-separated, or JSON array"
+                                    : input.type.startsWith("tuple")
+                                        ? "JSON array/object matching the tuple"
+                                        : input.type
+                              }
+                              value={functionArgs[i] ?? ""}
+                              onChange={(e) => handleArgChange(i, e.target.value)}
+                              style={inputStyle}
+                          />
+                        </div>
+                    ))}
+
+                {isPayable && (
+                    <div>
+                      <label>Value to send ({chain.nativeCurrency.symbol})</label>
+                      <input
+                          type="text"
+                          placeholder="0.0"
+                          value={payableValue}
+                          onChange={(e) => setPayableValue(e.target.value)}
+                          style={inputStyle}
+                      />
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    disabled={isLoading || !selectedFunction}
+                    style={{
+                      padding: "15px",
+                      backgroundColor: isRead ? "#1d4ed8" : "#000",
+                      color: "#fff",
+                      cursor: isLoading ? "not-allowed" : "pointer",
+                      opacity: isLoading ? 0.6 : 1,
+                      border: "none",
+                      borderRadius: "5px",
+                      fontWeight: "bold",
+                    }}
+                >
+                  {isLoading ? "Working..." : isRead ? "Read" : "Write (Send Transaction)"}
+                </button>
+              </form>
+            </>
+        )}
+
+        {status && (
+            <div
+                style={{
+                  marginTop: 20,
+                  padding: 15,
+                  backgroundColor: "#f0f0f0",
+                  borderRadius: 5,
+                  wordWrap: "break-word",
+                  color: "#0f172a",
+                }}
+            >
+              {status}
+            </div>
+        )}
+
+        {result && (
+            <pre
+                style={{
+                  marginTop: 12,
+                  padding: 15,
+                  backgroundColor: "#0f172a",
+                  color: "#e2e8f0",
+                  borderRadius: 5,
+                  overflowX: "auto",
+                  fontSize: 12,
+                }}
+            >
           {result}
         </pre>
-      )}
-    </div>
+        )}
+      </div>
   );
 }
 
@@ -733,8 +733,8 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
 
   const selectedIx = instructions.find((ix) => ix.name === selectedIxName);
   const selectedAccounts = useMemo(
-    () => (selectedIx ? selectedIx.accounts.map(normalizeAnchorAccount) : []),
-    [selectedIx]
+      () => (selectedIx ? selectedIx.accounts.map(normalizeAnchorAccount) : []),
+      [selectedIx]
   );
 
   // Reset args/accounts whenever the selected instruction changes shape.
@@ -837,172 +837,172 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
   };
 
   return (
-    <div style={cardStyle}>
-      <h2 style={{ marginBottom: 4 }}>Call Any Program Instruction</h2>
-      <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
-        Solana / Anchor only — paste a program ID and its IDL, pick an instruction, fill
-        in the args and accounts. Only the connected wallet can sign; any other account
-        marked as a signer will make the transaction fail (this tool can't hold extra
-        keypairs).
-      </p>
+      <div style={cardStyle}>
+        <h2 style={{ marginBottom: 4 }}>Call Any Program Instruction</h2>
+        <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
+          Solana / Anchor only — paste a program ID and its IDL, pick an instruction, fill
+          in the args and accounts. Only the connected wallet can sign; any other account
+          marked as a signer will make the transaction fail (this tool can't hold extra
+          keypairs).
+        </p>
 
-      <div style={{ marginBottom: 15 }}>
-        <label>Program ID</label>
-        <input
-          type="text"
-          placeholder="Program public key"
-          value={programIdInput}
-          onChange={(e) => setProgramIdInput(e.target.value)}
-          style={inputStyle}
-        />
-      </div>
-
-      <div style={{ marginBottom: 15 }}>
-        <label>Anchor IDL (JSON)</label>
-        <textarea
-          rows={6}
-          placeholder='{"instructions":[{"name":"buyTicket","accounts":[...],"args":[...]}], ...}'
-          value={idlJson}
-          onChange={(e) => setIdlJson(e.target.value)}
-          style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
-        />
-        {idlError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{idlError}</div>}
-      </div>
-
-      {instructions.length > 0 && (
-        <>
-          <div style={{ marginBottom: 15 }}>
-            <label>Instruction</label>
-            <select
-              value={selectedIxName}
-              onChange={(e) => setSelectedIxName(e.target.value)}
+        <div style={{ marginBottom: 15 }}>
+          <label>Program ID</label>
+          <input
+              type="text"
+              placeholder="Program public key"
+              value={programIdInput}
+              onChange={(e) => setProgramIdInput(e.target.value)}
               style={inputStyle}
-            >
-              {instructions.map((ix) => (
-                <option key={ix.name} value={ix.name}>
-                  {ix.name} ({ix.args.length} args, {ix.accounts.length} accounts)
-                </option>
-              ))}
-            </select>
-          </div>
+          />
+        </div>
 
-          <form style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-            {selectedAccounts.length > 0 && (
-              <div>
-                <label>
-                  <strong>Accounts</strong>
-                </label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-                  {selectedAccounts.map((acc, i) => (
-                    <div key={`${selectedIxName}-acc-${i}`}>
+        <div style={{ marginBottom: 15 }}>
+          <label>Anchor IDL (JSON)</label>
+          <textarea
+              rows={6}
+              placeholder='{"instructions":[{"name":"buyTicket","accounts":[...],"args":[...]}], ...}'
+              value={idlJson}
+              onChange={(e) => setIdlJson(e.target.value)}
+              style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
+          />
+          {idlError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{idlError}</div>}
+        </div>
+
+        {instructions.length > 0 && (
+            <>
+              <div style={{ marginBottom: 15 }}>
+                <label>Instruction</label>
+                <select
+                    value={selectedIxName}
+                    onChange={(e) => setSelectedIxName(e.target.value)}
+                    style={inputStyle}
+                >
+                  {instructions.map((ix) => (
+                      <option key={ix.name} value={ix.name}>
+                        {ix.name} ({ix.args.length} args, {ix.accounts.length} accounts)
+                      </option>
+                  ))}
+                </select>
+              </div>
+
+              <form style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+                {selectedAccounts.length > 0 && (
+                    <div>
                       <label>
-                        {acc.name}{" "}
-                        <span style={{ color: "#93c5fd" }}>
+                        <strong>Accounts</strong>
+                      </label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                        {selectedAccounts.map((acc, i) => (
+                            <div key={`${selectedIxName}-acc-${i}`}>
+                              <label>
+                                {acc.name}{" "}
+                                <span style={{ color: "#93c5fd" }}>
                           ({acc.isSigner ? "signer" : "non-signer"}, {acc.isWritable ? "writable" : "readonly"})
                         </span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Account public key"
-                        value={accountValues[i] ?? ""}
-                        onChange={(e) => handleAccountChange(i, e.target.value)}
-                        style={inputStyle}
-                      />
+                              </label>
+                              <input
+                                  type="text"
+                                  placeholder="Account public key"
+                                  value={accountValues[i] ?? ""}
+                                  onChange={(e) => handleAccountChange(i, e.target.value)}
+                                  style={inputStyle}
+                              />
+                            </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                )}
 
-            {selectedIx &&
-              selectedIx.args.map((arg, i) => (
-                <div key={`${selectedIxName}-arg-${i}`}>
-                  <label>
-                    {arg.name} <span style={{ color: "#93c5fd" }}>({anchorTypeLabel(arg.type)})</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={anchorTypeLabel(arg.type)}
-                    value={argValues[i] ?? ""}
-                    onChange={(e) => handleArgChange(i, e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-              ))}
+                {selectedIx &&
+                    selectedIx.args.map((arg, i) => (
+                        <div key={`${selectedIxName}-arg-${i}`}>
+                          <label>
+                            {arg.name} <span style={{ color: "#93c5fd" }}>({anchorTypeLabel(arg.type)})</span>
+                          </label>
+                          <input
+                              type="text"
+                              placeholder={anchorTypeLabel(arg.type)}
+                              value={argValues[i] ?? ""}
+                              onChange={(e) => handleArgChange(i, e.target.value)}
+                              style={inputStyle}
+                          />
+                        </div>
+                    ))}
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                type="button"
-                disabled={isLoading || !selectedIx}
-                onClick={handleSimulate}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                      type="button"
+                      disabled={isLoading || !selectedIx}
+                      onClick={handleSimulate}
+                      style={{
+                        flex: 1,
+                        padding: "15px",
+                        backgroundColor: "#1d4ed8",
+                        color: "#fff",
+                        cursor: isLoading ? "not-allowed" : "pointer",
+                        opacity: isLoading ? 0.6 : 1,
+                        border: "none",
+                        borderRadius: "5px",
+                        fontWeight: "bold",
+                      }}
+                  >
+                    {isLoading ? "Working..." : "Simulate"}
+                  </button>
+                  <button
+                      type="button"
+                      disabled={isLoading || !selectedIx}
+                      onClick={handleSend}
+                      style={{
+                        flex: 1,
+                        padding: "15px",
+                        backgroundColor: "#000",
+                        color: "#fff",
+                        cursor: isLoading ? "not-allowed" : "pointer",
+                        opacity: isLoading ? 0.6 : 1,
+                        border: "none",
+                        borderRadius: "5px",
+                        fontWeight: "bold",
+                      }}
+                  >
+                    {isLoading ? "Working..." : "Send Transaction"}
+                  </button>
+                </div>
+              </form>
+            </>
+        )}
+
+        {status && (
+            <div
                 style={{
-                  flex: 1,
-                  padding: "15px",
-                  backgroundColor: "#1d4ed8",
-                  color: "#fff",
-                  cursor: isLoading ? "not-allowed" : "pointer",
-                  opacity: isLoading ? 0.6 : 1,
-                  border: "none",
-                  borderRadius: "5px",
-                  fontWeight: "bold",
+                  marginTop: 20,
+                  padding: 15,
+                  backgroundColor: "#f0f0f0",
+                  borderRadius: 5,
+                  wordWrap: "break-word",
+                  color: "#0f172a",
                 }}
-              >
-                {isLoading ? "Working..." : "Simulate"}
-              </button>
-              <button
-                type="button"
-                disabled={isLoading || !selectedIx}
-                onClick={handleSend}
-                style={{
-                  flex: 1,
-                  padding: "15px",
-                  backgroundColor: "#000",
-                  color: "#fff",
-                  cursor: isLoading ? "not-allowed" : "pointer",
-                  opacity: isLoading ? 0.6 : 1,
-                  border: "none",
-                  borderRadius: "5px",
-                  fontWeight: "bold",
-                }}
-              >
-                {isLoading ? "Working..." : "Send Transaction"}
-              </button>
+            >
+              {status}
             </div>
-          </form>
-        </>
-      )}
+        )}
 
-      {status && (
-        <div
-          style={{
-            marginTop: 20,
-            padding: 15,
-            backgroundColor: "#f0f0f0",
-            borderRadius: 5,
-            wordWrap: "break-word",
-            color: "#0f172a",
-          }}
-        >
-          {status}
-        </div>
-      )}
-
-      {result && (
-        <pre
-          style={{
-            marginTop: 12,
-            padding: 15,
-            backgroundColor: "#0f172a",
-            color: "#e2e8f0",
-            borderRadius: 5,
-            overflowX: "auto",
-            fontSize: 12,
-          }}
-        >
+        {result && (
+            <pre
+                style={{
+                  marginTop: 12,
+                  padding: 15,
+                  backgroundColor: "#0f172a",
+                  color: "#e2e8f0",
+                  borderRadius: 5,
+                  overflowX: "auto",
+                  fontSize: 12,
+                }}
+            >
           {result}
         </pre>
-      )}
-    </div>
+        )}
+      </div>
   );
 }
 
@@ -1015,6 +1015,13 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
   const [amount, setAmount] = useState("");
   const [decimals, setDecimals] = useState("");
   const [status, setStatus] = useState("");
+  // When set, "Recipient Address" is treated as the destination TOKEN
+  // ACCOUNT itself (a PDA-owned ATA, or any token account) — no ATA
+  // derivation happens for it. Needed because getAssociatedTokenAddress()
+  // defaults allowOwnerOffCurve to false and throws on a PDA owner, and
+  // because we can't safely re-derive an ATA from an address we don't know
+  // the true owner of (e.g. if you paste the ATA itself instead of its owner).
+  const [recipientIsTokenAccount, setRecipientIsTokenAccount] = useState(false);
 
   const evmProviders = useEvmProviders();
   const [selectedEvmRdns, setSelectedEvmRdns] = useState("");
@@ -1044,45 +1051,66 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
     if (tokenAddress) {
       const mintPubKey = new PublicKey(tokenAddress);
       const fromTokenAccount = await getAssociatedTokenAddress(
-        mintPubKey,
-        publicKey
-      );
-      const toTokenAccount = await getAssociatedTokenAddress(
-        mintPubKey,
-        recipientPubKey
+          mintPubKey,
+          publicKey
       );
 
-      try {
-        await getAccount(connection, toTokenAccount);
-      } catch (e) {
-        transaction.add(
-          createAssociatedTokenAccountInstruction(
-            publicKey,
-            toTokenAccount,
-            recipientPubKey,
-            mintPubKey
-          )
+      let toTokenAccount;
+      if (recipientIsTokenAccount) {
+        // Recipient field IS the destination token account already (a
+        // PDA-owned ATA, or any token account) — send straight to it, no
+        // derivation. We deliberately don't auto-create here: without
+        // knowing the true owner, we can't build a correct
+        // createAssociatedTokenAccountInstruction for it.
+        toTokenAccount = recipientPubKey;
+        try {
+          await getAccount(connection, toTokenAccount);
+        } catch (e) {
+          throw new Error(
+              `Token account ${toTokenAccount.toBase58()} doesn't exist on-chain yet. ` +
+              `This mode can't auto-create it (the true owner isn't known here) — ` +
+              `create it first, e.g. via getOrCreateAssociatedTokenAccount in a script.`
+          );
+        }
+      } else {
+        // Recipient is a normal wallet — derive its ATA and auto-create it
+        // if missing, same as before.
+        toTokenAccount = await getAssociatedTokenAddress(
+            mintPubKey,
+            recipientPubKey
         );
+        try {
+          await getAccount(connection, toTokenAccount);
+        } catch (e) {
+          transaction.add(
+              createAssociatedTokenAccountInstruction(
+                  publicKey,
+                  toTokenAccount,
+                  recipientPubKey,
+                  mintPubKey
+              )
+          );
+        }
       }
 
       const tokenAmount = Math.round(parseFloat(amount) * Math.pow(10, resolvedDecimals));
 
       transaction.add(
-        createTransferInstruction(
-          fromTokenAccount,
-          toTokenAccount,
-          publicKey,
-          tokenAmount
-        )
+          createTransferInstruction(
+              fromTokenAccount,
+              toTokenAccount,
+              publicKey,
+              tokenAmount
+          )
       );
     } else {
       const lamports = Math.round(parseFloat(amount) * LAMPORTS_PER_SOL);
       transaction.add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: recipientPubKey,
-          lamports: lamports,
-        })
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: recipientPubKey,
+            lamports: lamports,
+          })
       );
     }
 
@@ -1128,7 +1156,7 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
         });
       } else {
         throw new Error(
-          `Failed to switch to ${chain.label}. Please switch manually in your wallet.`
+            `Failed to switch to ${chain.label}. Please switch manually in your wallet.`
         );
       }
     }
@@ -1142,7 +1170,7 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
 
     if (!eip1193Provider) {
       throw new Error(
-        "No EVM wallet found. Please install MetaMask or another injected wallet."
+          "No EVM wallet found. Please install MetaMask or another injected wallet."
       );
     }
     if (evmProviders.length > 1 && !selected) {
@@ -1181,8 +1209,8 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
     setStatus("Initiating transfer...");
     try {
       const txHash = isSolana
-        ? await handleSolanaTransfer()
-        : await handleEVMTransfer();
+          ? await handleSolanaTransfer()
+          : await handleEVMTransfer();
       setStatus(`Success! Transaction Hash: ${txHash}`);
     } catch (error) {
       console.error(error);
@@ -1191,194 +1219,213 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
   };
 
   return (
-    <div className="App">
-      <div className="App-header">
-        <h1>Universal Token Sender</h1>
+      <div className="App">
+        <div className="App-header">
+          <h1>Universal Token Sender</h1>
 
-        <div style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}>
-          <label>
-            <strong>Select Chain</strong>
-          </label>
-          <br />
-          <select
-            value={chainKey}
-            onChange={(e) => setChainKey(e.target.value)}
-            style={{ padding: "10px", width: "100%", marginTop: "5px" }}
-          >
-            {CHAIN_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.chains.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
-
-        {isSolana ? (
-          <div style={{ marginBottom: "20px" }}>
-            <WalletMultiButton />
-          </div>
-        ) : evmProviders.length > 0 ? (
           <div style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}>
             <label>
-              <strong>Select EVM Wallet</strong>
+              <strong>Select Chain</strong>
             </label>
-            <div
+            <br />
+            <select
+                value={chainKey}
+                onChange={(e) => setChainKey(e.target.value)}
+                style={{ padding: "10px", width: "100%", marginTop: "5px" }}
+            >
+              {CHAIN_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.chains.map((c) => (
+                        <option key={c.key} value={c.key}>
+                          {c.label}
+                        </option>
+                    ))}
+                  </optgroup>
+              ))}
+            </select>
+          </div>
+
+          {isSolana ? (
+              <div style={{ marginBottom: "20px" }}>
+                <WalletMultiButton />
+              </div>
+          ) : evmProviders.length > 0 ? (
+              <div style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}>
+                <label>
+                  <strong>Select EVM Wallet</strong>
+                </label>
+                <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                      marginTop: "8px",
+                    }}
+                >
+                  {evmProviders.map(({ info }) => (
+                      <button
+                          key={info.rdns}
+                          type="button"
+                          onClick={() => setSelectedEvmRdns(info.rdns)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            padding: "10px",
+                            borderRadius: "8px",
+                            border:
+                                selectedEvmRdns === info.rdns
+                                    ? "2px solid #60a5fa"
+                                    : "1px solid #475569",
+                            background:
+                                selectedEvmRdns === info.rdns
+                                    ? "rgba(96, 165, 250, 0.15)"
+                                    : "rgba(255, 255, 255, 0.05)",
+                            color: "#f8fafc",
+                            margin: 0,
+                          }}
+                      >
+                        {info.icon && (
+                            <img src={info.icon} alt="" style={{ width: 20, height: 20 }} />
+                        )}
+                        {info.name}
+                      </button>
+                  ))}
+                </div>
+              </div>
+          ) : (
+              <p style={{ color: "#93c5fd", marginBottom: "20px" }}>
+                No EVM wallet detected. Please install MetaMask or another
+                injected wallet.
+              </p>
+          )}
+
+          <form
+              onSubmit={handleTransfer}
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "8px",
-                marginTop: "8px",
+                gap: "15px",
+                textAlign: "left",
               }}
-            >
-              {evmProviders.map(({ info }) => (
-                <button
-                  key={info.rdns}
-                  type="button"
-                  onClick={() => setSelectedEvmRdns(info.rdns)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border:
-                      selectedEvmRdns === info.rdns
-                        ? "2px solid #60a5fa"
-                        : "1px solid #475569",
-                    background:
-                      selectedEvmRdns === info.rdns
-                        ? "rgba(96, 165, 250, 0.15)"
-                        : "rgba(255, 255, 255, 0.05)",
-                    color: "#f8fafc",
-                    margin: 0,
-                  }}
-                >
-                  {info.icon && (
-                    <img src={info.icon} alt="" style={{ width: 20, height: 20 }} />
-                  )}
-                  {info.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p style={{ color: "#93c5fd", marginBottom: "20px" }}>
-            No EVM wallet detected. Please install MetaMask or another
-            injected wallet.
-          </p>
-        )}
-
-        <form
-          onSubmit={handleTransfer}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-            textAlign: "left",
-          }}
-        >
-          <div>
-            <label>Recipient Address</label>
-            <input
-              type="text"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              required
-              style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
-            />
-          </div>
-
-          <div>
-            <label>Token Contract / Mint (Optional)</label>
-            <input
-              type="text"
-              placeholder={`Leave blank for native ${
-                isSolana ? "SOL" : chain.nativeCurrency.symbol
-              }`}
-              value={tokenAddress}
-              onChange={(e) => setTokenAddress(e.target.value)}
-              style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
-            />
-          </div>
-
-          {tokenAddress && (
+          >
             <div>
-              <label>Token Decimals</label>
+              <label>Recipient Address</label>
               <input
-                type="number"
-                placeholder={String(defaultDecimals)}
-                value={decimals}
-                onChange={(e) => setDecimals(e.target.value)}
-                style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+                  type="text"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+              />
+              {isSolana && tokenAddress && (
+                  <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 6,
+                        fontSize: 13,
+                        color: "#93c5fd",
+                      }}
+                  >
+                    <input
+                        type="checkbox"
+                        checked={recipientIsTokenAccount}
+                        onChange={(e) => setRecipientIsTokenAccount(e.target.checked)}
+                    />
+                    Recipient is already a token account (PDA-owned ATA, etc.) — send directly, don't derive
+                  </label>
+              )}
+            </div>
+
+            <div>
+              <label>Token Contract / Mint (Optional)</label>
+              <input
+                  type="text"
+                  placeholder={`Leave blank for native ${
+                      isSolana ? "SOL" : chain.nativeCurrency.symbol
+                  }`}
+                  value={tokenAddress}
+                  onChange={(e) => setTokenAddress(e.target.value)}
+                  style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
               />
             </div>
+
+            {tokenAddress && (
+                <div>
+                  <label>Token Decimals</label>
+                  <input
+                      type="number"
+                      placeholder={String(defaultDecimals)}
+                      value={decimals}
+                      onChange={(e) => setDecimals(e.target.value)}
+                      style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+                  />
+                </div>
+            )}
+
+            <div>
+              <label>Amount</label>
+              <input
+                  type="number"
+                  step="any"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                  style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+              />
+            </div>
+
+            <button
+                type="submit"
+                style={{
+                  padding: "15px",
+                  backgroundColor: "#000",
+                  color: "#fff",
+                  cursor: "pointer",
+                  border: "none",
+                  borderRadius: "5px",
+                  fontWeight: "bold",
+                }}
+            >
+              Send Tokens
+            </button>
+          </form>
+
+          {status && (
+              <div
+                  style={{
+                    marginTop: "20px",
+                    padding: "15px",
+                    backgroundColor: "#f0f0f0",
+                    borderRadius: "5px",
+                    wordWrap: "break-word",
+                    color: "#0f172a",
+                  }}
+              >
+                {status}
+              </div>
           )}
 
-          <div>
-            <label>Amount</label>
-            <input
-              type="number"
-              step="any"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
-            />
-          </div>
+          {!isSolana && (
+              <ContractInteraction
+                  chain={chain}
+                  evmProviders={evmProviders}
+                  selectedEvmRdns={selectedEvmRdns}
+                  ensureCorrectEvmNetwork={ensureCorrectEvmNetwork}
+              />
+          )}
 
-          <button
-            type="submit"
-            style={{
-              padding: "15px",
-              backgroundColor: "#000",
-              color: "#fff",
-              cursor: "pointer",
-              border: "none",
-              borderRadius: "5px",
-              fontWeight: "bold",
-            }}
-          >
-            Send Tokens
-          </button>
-        </form>
-
-        {status && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "15px",
-              backgroundColor: "#f0f0f0",
-              borderRadius: "5px",
-              wordWrap: "break-word",
-              color: "#0f172a",
-            }}
-          >
-            {status}
-          </div>
-        )}
-
-        {!isSolana && (
-          <ContractInteraction
-            chain={chain}
-            evmProviders={evmProviders}
-            selectedEvmRdns={selectedEvmRdns}
-            ensureCorrectEvmNetwork={ensureCorrectEvmNetwork}
-          />
-        )}
-
-        {isSolana && (
-          <SolanaProgramInteraction
-            connection={connection}
-            publicKey={publicKey}
-            sendTransaction={sendTransaction}
-          />
-        )}
+          {isSolana && (
+              <SolanaProgramInteraction
+                  connection={connection}
+                  publicKey={publicKey}
+                  sendTransaction={sendTransaction}
+              />
+          )}
+        </div>
       </div>
-    </div>
   );
 };
 
@@ -1390,8 +1437,8 @@ export default function Component1() {
   // ConnectionProvider/WalletProvider on cluster change forces a clean
   // reconnect instead of holding a stale endpoint.
   const solanaEndpoint = useMemo(
-    () => clusterApiUrl(chain.type === "solana" ? chain.cluster : "devnet"),
-    [chain]
+      () => clusterApiUrl(chain.type === "solana" ? chain.cluster : "devnet"),
+      [chain]
   );
 
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
@@ -1399,12 +1446,12 @@ export default function Component1() {
   const handleSetChainKey = useCallback((key) => setChainKey(key), []);
 
   return (
-    <ConnectionProvider key={solanaEndpoint} endpoint={solanaEndpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <UniversalSender chainKey={chainKey} setChainKey={handleSetChainKey} />
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+      <ConnectionProvider key={solanaEndpoint} endpoint={solanaEndpoint}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <UniversalSender chainKey={chainKey} setChainKey={handleSetChainKey} />
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
   );
 }
