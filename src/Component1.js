@@ -35,13 +35,19 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 
 // Anchor Imports
-import { BorshInstructionCoder, BorshAccountsCoder, BN } from "@coral-xyz/anchor";
+import {
+  BorshInstructionCoder,
+  BorshAccountsCoder,
+  BN,
+} from "@coral-xyz/anchor";
 
 // EVM Imports
 import { ethers } from "ethers";
 
 // CRITICAL POLYFILL
-window.Buffer = window.Buffer || Buffer;
+if (typeof window !== "undefined") {
+  window.Buffer = window.Buffer || Buffer;
+}
 
 // --- Chain registry ---------------------------------------------------
 const EVM_CHAINS = [
@@ -228,8 +234,14 @@ const CHAINS_BY_KEY = Object.fromEntries(
 
 const CHAIN_GROUPS = [
   { label: "Solana", chains: SOLANA_CHAINS },
-  { label: "EVM Mainnets", chains: EVM_CHAINS.filter((c) => c.group === "Mainnet") },
-  { label: "EVM Testnets", chains: EVM_CHAINS.filter((c) => c.group === "Testnet") },
+  {
+    label: "EVM Mainnets",
+    chains: EVM_CHAINS.filter((c) => c.group === "Mainnet"),
+  },
+  {
+    label: "EVM Testnets",
+    chains: EVM_CHAINS.filter((c) => c.group === "Testnet"),
+  },
 ];
 
 const DEFAULT_CHAIN_KEY = "solana-devnet";
@@ -273,7 +285,9 @@ function parseAbiParamValue(type, rawValue) {
 
   if (type.startsWith("tuple")) {
     if (value === "" || value === undefined) {
-      throw new Error(`Tuple parameter requires JSON input, e.g. ["0xabc...", 123]`);
+      throw new Error(
+        `Tuple parameter requires JSON input, e.g. ["0xabc...", 123]`
+      );
     }
     return JSON.parse(value);
   }
@@ -289,7 +303,14 @@ function parseAbiParamValue(type, rawValue) {
 function stringifyResult(value) {
   return JSON.stringify(
     value,
-    (_key, v) => (typeof v === "bigint" ? v.toString() : v),
+    (_key, v) => {
+      if (typeof v === "bigint") return v.toString();
+      if (v && typeof v === "object" && typeof v.toBase58 === "function") {
+        return v.toBase58();
+      }
+      if (BN.isBN(v)) return v.toString();
+      return v;
+    },
     2
   );
 }
@@ -302,7 +323,12 @@ const cardStyle = {
   textAlign: "left",
 };
 
-function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorrectEvmNetwork }) {
+function ContractInteraction({
+  chain,
+  evmProviders,
+  selectedEvmRdns,
+  ensureCorrectEvmNetwork,
+}) {
   const [contractAddress, setContractAddress] = useState("");
   const [abiJson, setAbiJson] = useState("");
   const [selectedSignature, setSelectedSignature] = useState("");
@@ -331,7 +357,9 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
       .map((item) => ({
         ...item,
         inputs: item.inputs || [],
-        signature: `${item.name}(${(item.inputs || []).map((inp) => inp.type).join(",")})`,
+        signature: `${item.name}(${(item.inputs || [])
+          .map((inp) => inp.type)
+          .join(",")})`,
       }));
   }, [parsedAbi]);
 
@@ -345,16 +373,24 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
     }
   }, [contractFunctions, selectedSignature]);
 
-  const selectedFunction = contractFunctions.find((f) => f.signature === selectedSignature);
+  const selectedFunction = contractFunctions.find(
+    (f) => f.signature === selectedSignature
+  );
 
   useEffect(() => {
-    setFunctionArgs(selectedFunction ? selectedFunction.inputs.map(() => "") : []);
+    setFunctionArgs(
+      selectedFunction ? selectedFunction.inputs.map(() => "") : []
+    );
     setPayableValue("");
     setResult("");
   }, [selectedFunction]);
 
-  const isRead = selectedFunction && (selectedFunction.stateMutability === "view" || selectedFunction.stateMutability === "pure");
-  const isPayable = selectedFunction && selectedFunction.stateMutability === "payable";
+  const isRead =
+    selectedFunction &&
+    (selectedFunction.stateMutability === "view" ||
+      selectedFunction.stateMutability === "pure");
+  const isPayable =
+    selectedFunction && selectedFunction.stateMutability === "payable";
 
   const handleArgChange = (index, value) => {
     setFunctionArgs((prev) => {
@@ -380,7 +416,9 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
       const selected = evmProviders.find((p) => p.info.rdns === selectedEvmRdns);
       const eip1193Provider = selected ? selected.provider : window.ethereum;
       if (!eip1193Provider) {
-        throw new Error("No EVM wallet found. Please install MetaMask or another injected wallet.");
+        throw new Error(
+          "No EVM wallet found. Please install MetaMask or another injected wallet."
+        );
       }
       if (evmProviders.length > 1 && !selected) {
         throw new Error("Please select which EVM wallet to use above.");
@@ -393,25 +431,37 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
       const freshProvider = new ethers.BrowserProvider(eip1193Provider);
       const signer = await freshProvider.getSigner();
 
-      const contract = new ethers.Contract(contractAddress.trim(), parsedAbi, signer);
+      const contract = new ethers.Contract(
+        contractAddress.trim(),
+        parsedAbi,
+        signer
+      );
       const args = selectedFunction.inputs.map((input, i) =>
         parseAbiParamValue(input.type, functionArgs[i])
       );
 
       const overrides = {};
       if (isPayable && payableValue) {
-        overrides.value = ethers.parseUnits(payableValue, chain.nativeCurrency.decimals);
+        overrides.value = ethers.parseUnits(
+          payableValue,
+          chain.nativeCurrency.decimals
+        );
       }
 
       const fn = contract.getFunction(selectedFunction.signature);
 
       if (isRead) {
-        const value = await fn(...args, ...(Object.keys(overrides).length ? [overrides] : []));
+        const value = await fn(
+          ...args,
+          ...(Object.keys(overrides).length ? [overrides] : [])
+        );
         setResult(stringifyResult(value));
         setStatus("Read complete.");
       } else {
         const tx = await fn(...args, overrides);
-        setStatus(`Transaction sent: ${tx.hash} — waiting for confirmation...`);
+        setStatus(
+          `Transaction sent: ${tx.hash} — waiting for confirmation...`
+        );
         const receipt = await tx.wait();
         setResult(stringifyResult(receipt));
         setStatus(`Confirmed in block ${receipt.blockNumber}.`);
@@ -428,9 +478,10 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
     <div style={cardStyle}>
       <h2 style={{ marginBottom: 4 }}>Call Any Contract Function</h2>
       <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
-        EVM only — paste a contract address and its ABI, pick a function, fill in the
-        arguments. View/pure functions are read directly; everything else is sent as a
-        transaction from the EVM wallet selected above, on {chain.label}.
+        EVM only — paste a contract address and its ABI, pick a function, fill
+        in the arguments. View/pure functions are read directly; everything else
+        is sent as a transaction from the EVM wallet selected above, on{" "}
+        {chain.label}.
       </p>
 
       <div style={{ marginBottom: 15 }}>
@@ -445,7 +496,10 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
       </div>
 
       <div style={{ marginBottom: 15 }}>
-        <label>Contract ABI (JSON array, or an Etherscan-style {"{ \"abi\": [...] }"} blob)</label>
+        <label>
+          Contract ABI (JSON array, or an Etherscan-style {'{ "abi": [...] }'}{" "}
+          blob)
+        </label>
         <textarea
           rows={6}
           placeholder='[{"type":"function","name":"transfer","inputs":[...],"stateMutability":"nonpayable",...}]'
@@ -453,7 +507,11 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
           onChange={(e) => setAbiJson(e.target.value)}
           style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
         />
-        {abiError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{abiError}</div>}
+        {abiError && (
+          <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>
+            {abiError}
+          </div>
+        )}
       </div>
 
       {contractFunctions.length > 0 && (
@@ -473,12 +531,16 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
             </select>
           </div>
 
-          <form onSubmit={handleCall} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+          <form
+            onSubmit={handleCall}
+            style={{ display: "flex", flexDirection: "column", gap: 15 }}
+          >
             {selectedFunction &&
               selectedFunction.inputs.map((input, i) => (
                 <div key={`${selectedFunction.signature}-${i}`}>
                   <label>
-                    {input.name || `arg${i}`} <span style={{ color: "#93c5fd" }}>({input.type})</span>
+                    {input.name || `arg${i}`}{" "}
+                    <span style={{ color: "#93c5fd" }}>({input.type})</span>
                   </label>
                   <input
                     type="text"
@@ -523,7 +585,11 @@ function ContractInteraction({ chain, evmProviders, selectedEvmRdns, ensureCorre
                 fontWeight: "bold",
               }}
             >
-              {isLoading ? "Working..." : isRead ? "Read" : "Write (Send Transaction)"}
+              {isLoading
+                ? "Working..."
+                : isRead
+                  ? "Read"
+                  : "Write (Send Transaction)"}
             </button>
           </form>
         </>
@@ -568,11 +634,14 @@ function parseAnchorArgValue(type, rawValue) {
 
   if (type && typeof type === "object") {
     if (type.vec !== undefined) {
-      const items = value === "" || value === undefined ? [] : JSON.parse(value);
+      const items =
+        value === "" || value === undefined ? [] : JSON.parse(value);
       return items.map((item) => parseAnchorArgValue(type.vec, item));
     }
     if (type.option !== undefined) {
-      return value === "" || value === undefined ? null : parseAnchorArgValue(type.option, value);
+      return value === "" || value === undefined
+        ? null
+        : parseAnchorArgValue(type.option, value);
     }
     if (type.array !== undefined) {
       const items = JSON.parse(value);
@@ -613,10 +682,14 @@ function anchorTypeLabel(type) {
   if (typeof type === "string") return type;
   if (!type || typeof type !== "object") return String(type);
   if (type.vec !== undefined) return `vec<${anchorTypeLabel(type.vec)}>`;
-  if (type.option !== undefined) return `option<${anchorTypeLabel(type.option)}>`;
-  if (type.array !== undefined) return `array<${anchorTypeLabel(type.array[0])}, ${type.array[1]}>`;
+  if (type.option !== undefined)
+    return `option<${anchorTypeLabel(type.option)}>`;
+  if (type.array !== undefined)
+    return `array<${anchorTypeLabel(type.array[0])}, ${type.array[1]}>`;
   if (type.defined !== undefined) {
-    return `defined<${typeof type.defined === "string" ? type.defined : type.defined.name}>`;
+    return `defined<${
+      typeof type.defined === "string" ? type.defined : type.defined.name
+    }>`;
   }
   return JSON.stringify(type);
 }
@@ -633,9 +706,18 @@ function defaultAnchorAccountValue(name, walletPublicKey) {
   const key = name.toLowerCase().replace(/_/g, "");
   if (key === "systemprogram") return SystemProgram.programId.toBase58();
   if (key === "tokenprogram") return TOKEN_PROGRAM_ID.toBase58();
-  if (key === "associatedtokenprogram") return ASSOCIATED_TOKEN_PROGRAM_ID.toBase58();
-  if (key === "rent" || key === "rentsysvar") return SYSVAR_RENT_PUBKEY.toBase58();
-  if (walletPublicKey && (key.includes("payer") || key.includes("signer") || key === "authority" || key === "user" || key === "owner")) {
+  if (key === "associatedtokenprogram")
+    return ASSOCIATED_TOKEN_PROGRAM_ID.toBase58();
+  if (key === "rent" || key === "rentsysvar")
+    return SYSVAR_RENT_PUBKEY.toBase58();
+  if (
+    walletPublicKey &&
+    (key.includes("payer") ||
+      key.includes("signer") ||
+      key === "authority" ||
+      key === "user" ||
+      key === "owner")
+  ) {
     return walletPublicKey.toBase58();
   }
   return "";
@@ -653,6 +735,7 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
 
   // Read Account states
   const [readAccountAddress, setReadAccountAddress] = useState("");
+  const [selectedAccountType, setSelectedAccountType] = useState("");
   const [readStatus, setReadStatus] = useState("");
   const [readResult, setReadResult] = useState("");
   const [isReading, setIsReading] = useState(false);
@@ -662,7 +745,9 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
     try {
       const parsed = JSON.parse(idlJson);
       if (!Array.isArray(parsed.instructions)) {
-        throw new Error("No `instructions` array found — is this a valid Anchor IDL?");
+        throw new Error(
+          "No `instructions` array found — is this a valid Anchor IDL?"
+        );
       }
       return { idl: parsed, idlError: "" };
     } catch (e) {
@@ -677,6 +762,7 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
   }, [idl, programIdInput]);
 
   const instructions = useMemo(() => idl?.instructions ?? [], [idl]);
+  const idlAccounts = useMemo(() => idl?.accounts ?? [], [idl]);
 
   useEffect(() => {
     if (instructions.length === 0) {
@@ -688,6 +774,16 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
     }
   }, [instructions, selectedIxName]);
 
+  useEffect(() => {
+    if (idlAccounts.length === 0) {
+      setSelectedAccountType("");
+      return;
+    }
+    if (!idlAccounts.some((acc) => acc.name === selectedAccountType)) {
+      setSelectedAccountType(idlAccounts[0].name);
+    }
+  }, [idlAccounts, selectedAccountType]);
+
   const selectedIx = instructions.find((ix) => ix.name === selectedIxName);
   const selectedAccounts = useMemo(
     () => (selectedIx ? selectedIx.accounts.map(normalizeAnchorAccount) : []),
@@ -696,7 +792,11 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
 
   useEffect(() => {
     setArgValues(selectedIx ? selectedIx.args.map(() => "") : []);
-    setAccountValues(selectedAccounts.map((acc) => defaultAnchorAccountValue(acc.name, publicKey)));
+    setAccountValues(
+      selectedAccounts.map((acc) =>
+        defaultAnchorAccountValue(acc.name, publicKey)
+      )
+    );
     setResult("");
   }, [selectedIx, selectedAccounts, publicKey]);
 
@@ -758,7 +858,11 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
       transaction.recentBlockhash = blockhash;
       const sim = await connection.simulateTransaction(transaction);
       setResult(stringifyResult(sim.value));
-      setStatus(sim.value.err ? `Simulation failed: ${JSON.stringify(sim.value.err)}` : "Simulation succeeded — see logs below.");
+      setStatus(
+        sim.value.err
+          ? `Simulation failed: ${JSON.stringify(sim.value.err)}`
+          : "Simulation succeeded — see logs below."
+      );
     } catch (error) {
       console.error(error);
       setStatus(`Failed: ${error.message}`);
@@ -816,11 +920,11 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
       }
 
       const coder = new BorshAccountsCoder(idl);
-      const accountName = idl.accounts?.[0]?.name;
+      const accountName = selectedAccountType || idl.accounts?.[0]?.name;
       if (!accountName) throw new Error("No accounts defined in IDL");
 
       const decoded = coder.decode(accountName, accountInfo.data);
-      setReadResult(JSON.stringify(decoded, null, 2));
+      setReadResult(stringifyResult(decoded));
       setReadStatus(`Decoded as ${accountName}`);
     } catch (err) {
       console.error(err);
@@ -834,10 +938,10 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
     <div style={cardStyle}>
       <h2 style={{ marginBottom: 4 }}>Call Any Program Instruction</h2>
       <p style={{ color: "#93c5fd", marginTop: 0, fontSize: 14 }}>
-        Solana / Anchor only — paste a program ID and its IDL, pick an instruction, fill
-        in the args and accounts. Only the connected wallet can sign; any other account
-        marked as a signer will make the transaction fail (this tool can't hold extra
-        keypairs).
+        Solana / Anchor only — paste a program ID and its IDL, pick an
+        instruction, fill in the args and accounts. Only the connected wallet
+        can sign; any other account marked as a signer will make the transaction
+        fail (this tool can't hold extra keypairs).
       </p>
 
       <div style={{ marginBottom: 15 }}>
@@ -860,7 +964,11 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
           onChange={(e) => setIdlJson(e.target.value)}
           style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }}
         />
-        {idlError && <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>{idlError}</div>}
+        {idlError && (
+          <div style={{ color: "#f87171", fontSize: 13, marginTop: 4 }}>
+            {idlError}
+          </div>
+        )}
       </div>
 
       {instructions.length > 0 && (
@@ -874,7 +982,8 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
             >
               {instructions.map((ix) => (
                 <option key={ix.name} value={ix.name}>
-                  {ix.name} ({ix.args.length} args, {ix.accounts.length} accounts)
+                  {ix.name} ({ix.args.length} args, {ix.accounts.length}{" "}
+                  accounts)
                 </option>
               ))}
             </select>
@@ -886,13 +995,21 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
                 <label>
                   <strong>Accounts</strong>
                 </label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    marginTop: 8,
+                  }}
+                >
                   {selectedAccounts.map((acc, i) => (
                     <div key={`${selectedIxName}-acc-${i}`}>
                       <label>
                         {acc.name}{" "}
                         <span style={{ color: "#93c5fd" }}>
-                          ({acc.isSigner ? "signer" : "non-signer"}, {acc.isWritable ? "writable" : "readonly"})
+                          ({acc.isSigner ? "signer" : "non-signer"},{" "}
+                          {acc.isWritable ? "writable" : "readonly"})
                         </span>
                       </label>
                       <input
@@ -912,7 +1029,10 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
               selectedIx.args.map((arg, i) => (
                 <div key={`${selectedIxName}-arg-${i}`}>
                   <label>
-                    {arg.name} <span style={{ color: "#93c5fd" }}>({anchorTypeLabel(arg.type)})</span>
+                    {arg.name}{" "}
+                    <span style={{ color: "#93c5fd" }}>
+                      ({anchorTypeLabel(arg.type)})
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -998,11 +1118,35 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
       )}
 
       {/* Read Account Section */}
-      <div style={{ marginTop: 30, paddingTop: 20, borderTop: "1px solid #475569" }}>
+      <div
+        style={{
+          marginTop: 30,
+          paddingTop: 20,
+          borderTop: "1px solid #475569",
+        }}
+      >
         <h3 style={{ marginBottom: 8 }}>Read Account Data</h3>
         <p style={{ color: "#93c5fd", fontSize: 13, marginTop: 0 }}>
           Paste an account address. Uses the IDL above to decode it.
         </p>
+
+        {idlAccounts.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <label>Account Type</label>
+            <select
+              value={selectedAccountType}
+              onChange={(e) => setSelectedAccountType(e.target.value)}
+              style={inputStyle}
+            >
+              {idlAccounts.map((acc) => (
+                <option key={acc.name} value={acc.name}>
+                  {acc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
           <input
             type="text"
@@ -1029,11 +1173,21 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
             {isReading ? "Reading..." : "Read"}
           </button>
         </div>
+
         {readStatus && (
-          <div style={{ padding: 10, backgroundColor: "#f0f0f0", borderRadius: 5, color: "#0f172a", marginBottom: 10 }}>
+          <div
+            style={{
+              padding: 10,
+              backgroundColor: "#f0f0f0",
+              borderRadius: 5,
+              color: "#0f172a",
+              marginBottom: 10,
+            }}
+          >
             {readStatus}
           </div>
         )}
+
         {readResult && (
           <pre
             style={{
@@ -1077,12 +1231,13 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
   const isSolana = chain.type === "solana";
 
   const defaultDecimals = isSolana ? 6 : 18;
-  const resolvedDecimals = decimals === "" ? defaultDecimals : parseInt(decimals, 10);
+  const resolvedDecimals =
+    decimals === "" ? defaultDecimals : parseInt(decimals, 10);
 
   const handleSolanaTransfer = async () => {
     if (!publicKey) throw new Error("Please connect your Solana wallet.");
     const recipientPubKey = new PublicKey(recipient);
-    let transaction = new Transaction();
+    const transaction = new Transaction();
 
     if (tokenAddress) {
       const mintPubKey = new PublicKey(tokenAddress);
@@ -1099,8 +1254,8 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
         } catch (e) {
           throw new Error(
             `Token account ${toTokenAccount.toBase58()} doesn't exist on-chain yet. ` +
-            `This mode can't auto-create it (the true owner isn't known here) — ` +
-            `create it first, e.g. via getOrCreateAssociatedTokenAccount in a script.`
+              `This mode can't auto-create it (the true owner isn't known here) — ` +
+              `create it first, e.g. via getOrCreateAssociatedTokenAccount in a script.`
           );
         }
       } else {
@@ -1122,7 +1277,9 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
         }
       }
 
-      const tokenAmount = Math.round(parseFloat(amount) * Math.pow(10, resolvedDecimals));
+      const tokenAmount = Math.round(
+        parseFloat(amount) * Math.pow(10, resolvedDecimals)
+      );
 
       transaction.add(
         createTransferInstruction(
@@ -1213,7 +1370,11 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
       const erc20Abi = [
         "function transfer(address to, uint256 amount) returns (bool)",
       ];
-      const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        erc20Abi,
+        signer
+      );
       const parsedAmount = ethers.parseUnits(amount, resolvedDecimals);
       const tx = await tokenContract.transfer(recipient, parsedAmount);
       await tx.wait();
@@ -1270,11 +1431,13 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
         </div>
 
         {isSolana ? (
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "20px", position: "relative", zIndex: 10 }}>
             <WalletMultiButton />
           </div>
         ) : evmProviders.length > 0 ? (
-          <div style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}>
+          <div
+            style={{ marginBottom: "20px", textAlign: "left", width: "300px" }}
+          >
             <label>
               <strong>Select EVM Wallet</strong>
             </label>
@@ -1310,7 +1473,11 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
                   }}
                 >
                   {info.icon && (
-                    <img src={info.icon} alt="" style={{ width: 20, height: 20 }} />
+                    <img
+                      src={info.icon}
+                      alt=""
+                      style={{ width: 20, height: 20 }}
+                    />
                   )}
                   {info.name}
                 </button>
@@ -1319,8 +1486,8 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
           </div>
         ) : (
           <p style={{ color: "#93c5fd", marginBottom: "20px" }}>
-            No EVM wallet detected. Please install MetaMask or another
-            injected wallet.
+            No EVM wallet detected. Please install MetaMask or another injected
+            wallet.
           </p>
         )}
 
@@ -1358,7 +1525,8 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
                   checked={recipientIsTokenAccount}
                   onChange={(e) => setRecipientIsTokenAccount(e.target.checked)}
                 />
-                Recipient is already a token account (PDA-owned ATA, etc.) — send directly, don't derive
+                Recipient is already a token account (PDA-owned ATA, etc.) —
+                send directly, don't derive
               </label>
             )}
           </div>
@@ -1384,7 +1552,11 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
                 placeholder={String(defaultDecimals)}
                 value={decimals}
                 onChange={(e) => setDecimals(e.target.value)}
-                style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  boxSizing: "border-box",
+                }}
               />
             </div>
           )}
@@ -1467,10 +1639,13 @@ export default function Component1() {
   const handleSetChainKey = useCallback((key) => setChainKey(key), []);
 
   return (
-    <ConnectionProvider key={solanaEndpoint} endpoint={solanaEndpoint}>
+    <ConnectionProvider endpoint={solanaEndpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <UniversalSender chainKey={chainKey} setChainKey={handleSetChainKey} />
+          <UniversalSender
+            chainKey={chainKey}
+            setChainKey={handleSetChainKey}
+          />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
