@@ -9,11 +9,8 @@ import {
   useConnection,
   useWallet,
 } from "@solana/wallet-adapter-react";
-import {
-  WalletModalProvider,
-  WalletMultiButton,
-} from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom"; // <-- FIX: restored
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import {
   clusterApiUrl,
   PublicKey,
@@ -1206,7 +1203,124 @@ function SolanaProgramInteraction({ connection, publicKey, sendTransaction }) {
   );
 }
 
-const UniversalSender = ({ chainKey, setChainKey }) => {
+// Replaces <WalletMultiButton />. Same look (uses the library's CSS classes), but
+// the connect call is explicit and any failure is printed on the page instead of
+// silently resetting the button back to "Select Wallet".
+function SolanaWalletButton({ walletError }) {
+  const {
+    wallets,
+    wallet,
+    select,
+    connect,
+    disconnect,
+    connected,
+    connecting,
+    publicKey,
+  } = useWallet();
+  const [wantConnect, setWantConnect] = useState(false);
+  const [localError, setLocalError] = useState("");
+
+  const phantom = wallets.find((w) => w.adapter.name === "Phantom");
+  const target = wallet || phantom;
+  const readyState = target ? target.readyState : "no Phantom adapter";
+
+  const describeError = (err) =>
+    `${err?.name || "Error"}: ${err?.message || err?.error?.message || String(err)}`;
+
+  // After select() the adapter only becomes "current" on the next render, so the
+  // connect() call has to happen in an effect, not right after select().
+  useEffect(() => {
+    if (!wantConnect) return;
+    if (connected) {
+      setWantConnect(false);
+      return;
+    }
+    if (!wallet || connecting) return;
+    setWantConnect(false);
+    connect().catch((err) => setLocalError(describeError(err)));
+  }, [wantConnect, wallet, connected, connecting, connect]);
+
+  const handleClick = () => {
+    setLocalError("");
+    if (connected || connecting) return;
+    if (!target) {
+      setLocalError("Phantom adapter is not registered in WalletProvider.");
+      return;
+    }
+    if (target.readyState !== "Installed" && target.readyState !== "Loadable") {
+      setLocalError(
+        `This page cannot see Phantom (readyState: ${target.readyState}). ` +
+          `Reload the tab; if it persists, check Phantom is enabled/unlocked in THIS browser profile.`
+      );
+      return;
+    }
+    if (!wallet) select(target.adapter.name);
+    setWantConnect(true);
+  };
+
+  const handleDisconnect = () => {
+    disconnect().catch((err) => setLocalError(describeError(err)));
+  };
+
+  const base58 = publicKey ? publicKey.toBase58() : "";
+  const label = connected
+    ? `${base58.slice(0, 4)}..${base58.slice(-4)}`
+    : connecting
+      ? "Connecting..."
+      : "Connect Phantom";
+  const shownError = connected ? "" : localError || walletError;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="wallet-adapter-button wallet-adapter-button-trigger"
+          onClick={handleClick}
+          disabled={connecting}
+          style={{ margin: 0 }}
+        >
+          {label}
+        </button>
+        {connected && (
+          <button
+            type="button"
+            className="wallet-adapter-button"
+            onClick={handleDisconnect}
+            style={{ margin: 0 }}
+          >
+            Disconnect
+          </button>
+        )}
+      </div>
+      <div style={{ fontSize: 12, color: "#93c5fd" }}>
+        Phantom: {connected ? "connected" : String(readyState)}
+      </div>
+      {shownError && (
+        <div
+          style={{
+            fontSize: 13,
+            color: "#f87171",
+            maxWidth: 420,
+            textAlign: "center",
+            wordBreak: "break-word",
+          }}
+        >
+          {shownError}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const UniversalSender = ({ chainKey, setChainKey, walletError }) => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
 
@@ -1431,7 +1545,7 @@ const UniversalSender = ({ chainKey, setChainKey }) => {
 
         {isSolana ? (
           <div style={{ marginBottom: "20px", position: "relative", zIndex: 10 }}>
-            <WalletMultiButton />
+            <SolanaWalletButton walletError={walletError} />
           </div>
         ) : evmProviders.length > 0 ? (
           <div
@@ -1633,25 +1747,27 @@ export default function Component1() {
     [chain]
   );
 
-  // FIX: register Phantom explicitly (this is what worked before).
-  // An empty array relied on Wallet Standard auto-detect, which is why the
-  // Phantom popup stopped opening.
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
   const handleSetChainKey = useCallback((key) => setChainKey(key), []);
 
+  // Wallet errors are shown on the page (under the Connect button), not just in the console.
+  const [walletError, setWalletError] = useState("");
   const onWalletError = useCallback((error) => {
     console.error("Solana Wallet Error:", error);
+    setWalletError(
+      `${error?.name || "Error"}: ${error?.message || error?.error?.message || ""}`
+    );
   }, []);
 
   return (
-    // FIX: key restored — re-keying on cluster change forces a clean reconnect
     <ConnectionProvider key={solanaEndpoint} endpoint={solanaEndpoint}>
       <WalletProvider wallets={wallets} onError={onWalletError} autoConnect>
         <WalletModalProvider>
           <UniversalSender
             chainKey={chainKey}
             setChainKey={handleSetChainKey}
+            walletError={walletError}
           />
         </WalletModalProvider>
       </WalletProvider>
