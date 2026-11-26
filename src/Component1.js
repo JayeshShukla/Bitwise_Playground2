@@ -32,8 +32,6 @@ import {
 } from "@solana/spl-token";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
-
 // Anchor Imports
 import {
   BorshInstructionCoder,
@@ -1634,13 +1632,18 @@ export default function Component1() {
     [chain]
   );
 
-  const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
+  // Empty array lets Phantom & other wallets connect cleanly via Wallet Standard
+  const wallets = useMemo(() => [], []);
 
   const handleSetChainKey = useCallback((key) => setChainKey(key), []);
 
+  const onWalletError = useCallback((error) => {
+    console.error("Solana Wallet Error:", error);
+  }, []);
+
   return (
     <ConnectionProvider endpoint={solanaEndpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
+      <WalletProvider wallets={wallets} onError={onWalletError} autoConnect>
         <WalletModalProvider>
           <UniversalSender
             chainKey={chainKey}
