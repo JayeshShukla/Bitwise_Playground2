@@ -13,6 +13,7 @@ import {
   WalletModalProvider,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom"; // <-- FIX: restored
 import {
   clusterApiUrl,
   PublicKey,
@@ -1632,8 +1633,10 @@ export default function Component1() {
     [chain]
   );
 
-  // Empty array lets Phantom & other wallets connect cleanly via Wallet Standard
-  const wallets = useMemo(() => [], []);
+  // FIX: register Phantom explicitly (this is what worked before).
+  // An empty array relied on Wallet Standard auto-detect, which is why the
+  // Phantom popup stopped opening.
+  const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
   const handleSetChainKey = useCallback((key) => setChainKey(key), []);
 
@@ -1642,7 +1645,8 @@ export default function Component1() {
   }, []);
 
   return (
-    <ConnectionProvider endpoint={solanaEndpoint}>
+    // FIX: key restored — re-keying on cluster change forces a clean reconnect
+    <ConnectionProvider key={solanaEndpoint} endpoint={solanaEndpoint}>
       <WalletProvider wallets={wallets} onError={onWalletError} autoConnect>
         <WalletModalProvider>
           <UniversalSender
